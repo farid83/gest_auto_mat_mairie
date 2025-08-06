@@ -51,11 +51,9 @@ export const AuthProvider = ({ children }) => {
   // Simulation de vérification de session au démarrage
   useEffect(() => {
     const checkSession = async () => {
-      dispatch({ type: 'LOGIN_START' });
-      
       try {
-        // Simuler la vérification d'une session cookie
-        await mockApiDelay(1000);
+        // Simuler la vérification d'une session cookie (délai réduit)
+        await mockApiDelay(500);
         
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
