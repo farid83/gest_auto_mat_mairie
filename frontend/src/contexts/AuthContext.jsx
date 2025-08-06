@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { mockUsers, mockApiDelay } from '../services/mock';
+import { authService } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -41,29 +41,27 @@ const authReducer = (state, action) => {
 const initialState = {
   user: null,
   isAuthenticated: false,
-  isLoading: true, // Démarrer en état de chargement
+  isLoading: true, // Démarrer en état de chargement pour vérifier la session
   error: null
 };
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Simulation de vérification de session au démarrage
+  // Vérification de session au démarrage avec Laravel Sanctum
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Simuler la vérification d'une session cookie (délai réduit)
-        await mockApiDelay(500);
-        
-        const storedUser = localStorage.getItem('currentUser');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-        } else {
-          dispatch({ type: 'LOGOUT' });
-        }
+        // Tentative de récupération de l'utilisateur authentifié
+        const user = await authService.getUser();
+        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       } catch (error) {
-        dispatch({ type: 'LOGIN_ERROR', payload: 'Erreur de session' });
+        // Si erreur 401/403, l'utilisateur n'est pas authentifié
+        if (error.status === 401 || error.status === 403) {
+          dispatch({ type: 'LOGOUT' });
+        } else {
+          dispatch({ type: 'LOGIN_ERROR', payload: 'Erreur de vérification de session' });
+        }
       }
     };
 
@@ -74,20 +72,9 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'LOGIN_START' });
     
     try {
-      await mockApiDelay(800);
-      
-      // Simulation de l'authentification
-      const user = mockUsers.find(u => u.email === email && u.active);
-      
-      if (!user) {
-        throw new Error('Identifiants incorrects');
-      }
-
-      // Simuler la création d'une session cookie côté serveur
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      
-      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-      return { success: true };
+      const result = await authService.login(email, password);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: result.user });
+      return { success: true, message: result.message };
     } catch (error) {
       dispatch({ type: 'LOGIN_ERROR', payload: error.message });
       return { success: false, error: error.message };
@@ -96,15 +83,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await mockApiDelay(300);
-      
-      // Simuler la destruction de la session cookie
-      localStorage.removeItem('currentUser');
-      
+      await authService.logout();
       dispatch({ type: 'LOGOUT' });
       return { success: true };
     } catch (error) {
+      // Même en cas d'erreur, on déconnecte côté client
+      dispatch({ type: 'LOGOUT' });
       console.error('Erreur lors de la déconnexion:', error);
+      return { success: true }; // On considère comme réussi côté UX
     }
   };
 
@@ -122,13 +108,76 @@ export const AuthProvider = ({ children }) => {
     return roles.includes(state.user.role);
   };
 
+  // Fonction utilitaire pour vérifier les permissions
+  const canAccess = (resource, action = 'read') => {
+    if (!state.user) return false;
+
+    const { role } = state.user;
+    
+    // Matrice des permissions par rôle
+    const permissions = {
+      admin: {
+        users: ['read', 'create', 'update', 'delete'],
+        materials: ['read', 'create', 'update', 'delete'],
+        requests: ['read', 'create', 'update', 'delete'],
+        validations: ['read', 'create'],
+        deliveries: ['read', 'create', 'update'],
+        settings: ['read', 'update']
+      },
+      secretaire_executif: {
+        users: ['read'],
+        materials: ['read'],
+        requests: ['read', 'create'],
+        validations: ['read', 'create'], // Peut valider
+        deliveries: ['read'],
+        settings: []
+      },
+      daaf: {
+        users: ['read'],
+        materials: ['read'],
+        requests: ['read', 'create'],
+        validations: ['read', 'create'], // Peut valider
+        deliveries: ['read'],
+        settings: []
+      },
+      directeur: {
+        users: ['read'],
+        materials: ['read'],
+        requests: ['read', 'create'],
+        validations: ['read', 'create'], // Peut valider
+        deliveries: ['read'],
+        settings: []
+      },
+      gestionnaire_stock: {
+        users: ['read'],
+        materials: ['read', 'create', 'update'],
+        requests: ['read'],
+        validations: ['read'],
+        deliveries: ['read', 'create', 'update'], // Gestion des livraisons
+        settings: []
+      },
+      agent: {
+        users: ['read'],
+        materials: ['read'],
+        requests: ['read', 'create'], // Peut créer des demandes
+        validations: ['read'],
+        deliveries: ['read'], // Peut voir ses livraisons
+        settings: []
+      }
+    };
+
+    const userPermissions = permissions[role]?.[resource] || [];
+    return userPermissions.includes(action);
+  };
+
   const value = {
     ...state,
     login,
     logout,
     clearError,
     hasRole,
-    hasAnyRole
+    hasAnyRole,
+    canAccess
   };
 
   return (
