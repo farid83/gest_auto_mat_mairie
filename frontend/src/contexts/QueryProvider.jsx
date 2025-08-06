@@ -1,6 +1,5 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // Configuration du client React Query
 const queryClient = new QueryClient({
@@ -56,15 +55,6 @@ const QueryProvider = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      
-      {/* DevTools en développement uniquement */}
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools 
-          initialIsOpen={false} 
-          position="bottom-right"
-          buttonPosition="bottom-right"
-        />
-      )}
     </QueryClientProvider>
   );
 };
