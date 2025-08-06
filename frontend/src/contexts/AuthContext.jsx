@@ -41,7 +41,7 @@ const authReducer = (state, action) => {
 const initialState = {
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // Démarrer en état de chargement
   error: null
 };
 
