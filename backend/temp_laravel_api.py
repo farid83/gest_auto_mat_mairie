@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, EmailStr
@@ -108,6 +108,7 @@ class User(BaseModel):
 class AuthResponse(BaseModel):
     user: User
     message: str
+    session_id: str  # Ajoute ce champ
 
 class StatsResponse(BaseModel):
     requests_total: int
@@ -161,13 +162,11 @@ async def login(login_data: LoginRequest):
     # Créer une session
     session_id = create_session(user_data["id"])
     user = User(**user_data)
-    
-    # En production: set HTTPOnly cookie
     print(f"Session créée: {session_id} pour {user.email}")
-    
     return AuthResponse(
         user=user,
-        message="Connexion réussie"
+        message="Connexion réussie",
+        session_id=session_id  # Ajoute ici
     )
 
 @api_router.post("/auth/logout")
@@ -177,15 +176,12 @@ async def logout():
     return {"message": "Déconnexion réussie"}
 
 @api_router.get("/auth/user", response_model=User)
-async def get_current_user_info():
-    """Récupérer l'utilisateur actuel"""
-    # Simulation: retourner l'admin par défaut
-    # En production: vérifier cookie/session
-    admin_user = next((u for u in users_db if u["email"] == "admin@adjarra.bj"), None)
-    if not admin_user:
+async def get_current_user_info(request: Request):
+    session_id = request.headers.get("X-Session-Id")
+    user = get_current_user(session_id)
+    if not user:
         raise HTTPException(status_code=401, detail="Non authentifié")
-    
-    return User(**admin_user)
+    return user
 
 # Route des statistiques dashboard
 @api_router.get("/dashboard/stats", response_model=StatsResponse)

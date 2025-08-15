@@ -1,95 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Package, 
-  FileText, 
-  CheckSquare, 
-  Users, 
-  Truck, 
-  Settings,
-  Menu,
-  X,
-  Bell,
-  User,
-  LogOut,
-  Moon,
-  Sun
+import {
+  Home, Package, FileText, CheckSquare, Users,
+  Truck, Settings, Menu, Bell, User as UserIcon,
+  LogOut, Moon, Sun
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '../ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { useAuth } from '../../contexts/AuthContext';
 import { mockNotifications, roleLabels } from '../../services/mock';
+import { Toaster } from 'sonner';
 
 const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
+  
+console.log("AuthContext ->", { 
+  user, 
+  isLoading, 
+  isAuthenticated: !!user, 
+  role: user?.role 
+});
+console.log("LocalStorage ->", 
+  localStorage.getItem('session_id'), 
+  localStorage.getItem('user')
+);
+  // État pour le mode sombre et le menu mobile
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Filtrer les notifications non lues pour l'utilisateur actuel
-  const unreadNotifications = mockNotifications.filter(
-    notif => notif.user_id === user?.id && !notif.read
-  );
-
+  // Menu items avec rôles uniformisés
   const menuItems = [
-    { 
-      icon: Home, 
-      label: 'Dashboard', 
-      path: '/dashboard',
-      roles: ['agent', 'directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif', 'admin']
-    },
-    { 
-      icon: Package, 
-      label: 'Matériels', 
-      path: '/materials',
-      roles: ['gestionnaire_stock', 'admin', 'agent', 'directeur']
-    },
-    { 
-      icon: FileText, 
-      label: 'Demandes', 
-      path: '/requests',
-      roles: ['agent', 'directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif', 'admin']
-    },
-    { 
-      icon: CheckSquare, 
-      label: 'Validations', 
-      path: '/validations',
-      roles: ['directeur', 'daaf', 'secretaire_executif', 'admin']
-    },
-    { 
-      icon: Truck, 
-      label: 'Livraisons', 
-      path: '/deliveries',
-      roles: ['gestionnaire_stock', 'agent', 'admin']
-    },
-    { 
-      icon: Users, 
-      label: 'Utilisateurs', 
-      path: '/users',
-      roles: ['admin']
-    },
-    { 
-      icon: Settings, 
-      label: 'Configuration', 
-      path: '/settings',
-      roles: ['admin']
-    }
+    { icon: Home, label: 'Dashboard', path: '/dashboard', roles: ['agent','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
+    { icon: Package, label: 'Matériels', path: '/materials', roles: ['gestionnaire_stock','admin','secretaire_executif','daaf'] },
+    { icon: FileText, label: 'Demandes', path: '/requests', roles: ['agent','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
+    { icon: CheckSquare, label: 'Validations', path: '/validations', roles: ['directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
+    { icon: Truck, label: 'Livraisons', path: '/deliveries', roles: ['gestionnaire_stock','daaf','admin'] },
+    { icon: Users, label: 'Utilisateurs', path: '/users', roles: ['admin'] },
+    { icon: Settings, label: 'Configuration', path: '/settings', roles: ['admin'] }
   ];
 
-  const visibleMenuItems = menuItems.filter(item => 
-    item.roles.includes(user?.role)
+  // Loader global si AuthContext est en train de vérifier la session
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-lg">
+        Chargement de votre session...
+      </div>
+    );
+  }
+
+  const visibleMenuItems = useMemo(() => {
+    if (!user) return [];
+    return menuItems.filter(item => item.roles.includes(user.role));
+  },   [user, menuItems]);
+
+  const unreadNotifications = mockNotifications.filter(
+    notif => notif.user_id === user?.id && !notif.read
   );
 
   const handleLogout = async () => {
@@ -122,7 +95,7 @@ const Layout = () => {
         {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
-          
+
           return (
             <button
               key={item.path}
@@ -131,8 +104,8 @@ const Layout = () => {
                 if (mobile) setIsMobileMenuOpen(false);
               }}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                isActive 
-                  ? 'bg-primary text-primary-foreground' 
+                isActive
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
@@ -144,18 +117,20 @@ const Layout = () => {
       </nav>
 
       {/* User info */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center space-x-3 p-2 rounded-lg bg-muted/50">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={user?.avatar} />
-            <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
-            <p className="text-xs text-muted-foreground">{roleLabels[user?.role]}</p>
+      {user && (
+        <div className="p-4 border-t border-border">
+          <div className="flex items-center space-x-3 p-2 rounded-lg bg-muted/50">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+              <p className="text-xs text-muted-foreground">{roleLabels[user?.role]}</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
@@ -182,9 +157,9 @@ const Layout = () => {
               {/* Mobile Menu Button */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="lg:hidden"
                     onClick={() => setIsMobileMenuOpen(true)}
                   >
@@ -192,7 +167,6 @@ const Layout = () => {
                   </Button>
                 </SheetTrigger>
               </Sheet>
-              
               <div className="hidden lg:block">
                 <h2 className="text-xl font-semibold text-foreground">
                   {visibleMenuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
@@ -243,7 +217,7 @@ const Layout = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
+                    <UserIcon className="mr-2 h-4 w-4" />
                     <span>Profil</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -264,6 +238,7 @@ const Layout = () => {
           </main>
         </div>
       </div>
+      <Toaster />
     </div>
   );
 };

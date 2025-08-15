@@ -1,13 +1,16 @@
 import axios from 'axios';
-
+import csrfClient from './csrfClient';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Configuration Axios pour Laravel Sanctum
 const api = axios.create({
-  baseURL: `${BACKEND_URL}/api`,
+  baseURL: 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
+
     'X-Requested-With': 'XMLHttpRequest'
   },
   withCredentials: true // Important pour Laravel Sanctum
@@ -15,47 +18,101 @@ const api = axios.create({
 
 // Intercepteur pour gérer les erreurs globalement
 api.interceptors.response.use(
+
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       // Redirection vers login ou clear auth state
       window.location.href = '/login';
     }
-    
+
     // Format d'erreur standardisé
+
     const apiError = {
       message: error.response?.data?.message || 'Une erreur est survenue',
       errors: error.response?.data?.errors || {},
       status: error.response?.status || 500
     };
-    
+    console.error('Raw Axios error:', error);
+    console.error('Request config:', error.config);
+    console.error('Error.request:', error.request);
+
     return Promise.reject(apiError);
   }
 );
+// exemple d'interceptor axios
+api.interceptors.response.use(
+  res => res,
+  (error) => {
+    const res = error.response;
+    console.error('API error:', {
+      url: res?.config?.url,
+      method: res?.config?.method,
+      status: res?.status,
+      data: res?.data,
+      headers: res?.headers,
+    });
 
+    const apiError = {
+      message: res?.data?.message || error.message || 'Une erreur est survenue',
+      errors: res?.data?.errors || {},
+      status: res?.status || 500,
+    };
+    return Promise.reject(apiError);
+  }
+);
 // Service d'authentification
 export const authService = {
   // Récupérer le token CSRF avant login
   async getCsrfToken() {
-    return api.get('/sanctum/csrf-cookie');
+    return csrfClient.get('/sanctum/csrf-cookie'); // ✅ bon client, bon chemin
   },
 
   async login(email, password) {
+    // 1. CSRF cookie
     await this.getCsrfToken();
-    const response = await api.post('/auth/login', { email, password });
-    return response.data;
+
+    // 2. Requête de login
+    const response = await api.post('api/login', { email, password });
+    const { token, user, sessionId } = response.data;
+
+    // 3. Stockage local (clé + valeur !)
+    localStorage.setItem('token', token); // 🔹 2 arguments obligatoires
+    if (sessionId) {
+      localStorage.setItem('sessionId', sessionId);
+    }
+
+    localStorage.setItem('user', JSON.stringify(user)); // 🔹 objet => JSON.stringify
+
+    // 4. Retourner les infos pour usage immédiat
+    return { token, user };
   },
 
   async logout() {
-    const response = await api.post('/auth/logout');
-    return response.data;
+    // Si tu veux révoquer côté serveur, adapte l’URL/méthode
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.warn('Erreur lors du logout côté serveur', err);
+    }
+    // Nettoyage local
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   },
 
-  async getUser() {
-    const response = await api.get('/auth/user');
-    return response.data.user;
+async getUser() {
+  try {
+    const { data } = await api.get('/api/auth/user');
+    return data;
+  } catch (err) {
+    if (err.status === 401) {
+      return null; // pas connecté
+    }
+    throw err;
   }
+}
 };
+
 
 // Service utilisateurs
 export const usersService = {
@@ -181,9 +238,25 @@ export const notificationsService = {
 // Service dashboard
 export const dashboardService = {
   async getStats() {
-    const response = await api.get('/dashboard/stats');
+    const response = await api.get('/api/dashboard/stats')
     return response.data;
   }
 };
+api.interceptors.request.use((config) => {
+  // Lecture du token déjà stocké
+  const token = localStorage.getItem('token'); // ou 'token' selon ta clé
+  const sid = localStorage.getItem('sessionId');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  config.headers.Accept = 'application/json'; // bien préciser pour éviter HTML par défaut
+
+  return config;
+});
+
+
+// Vérifier le session_id dans le localStorage
+console.log('Session ID dans le localStorage:', localStorage.getItem('session_id'));
 
 export default api;

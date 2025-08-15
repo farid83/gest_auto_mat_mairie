@@ -8,28 +8,28 @@ const authReducer = (state, action) => {
     case 'LOGIN_START':
       return { ...state, isLoading: true, error: null };
     case 'LOGIN_SUCCESS':
-      return { 
-        ...state, 
-        user: action.payload, 
-        isAuthenticated: true, 
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: true,
         isLoading: false,
-        error: null 
+        error: null
       };
     case 'LOGIN_ERROR':
-      return { 
-        ...state, 
-        error: action.payload, 
+      return {
+        ...state,
+        error: action.payload,
         isLoading: false,
         isAuthenticated: false,
-        user: null 
+        user: null
       };
     case 'LOGOUT':
-      return { 
-        ...state, 
-        user: null, 
+      return {
+        ...state,
+        user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null 
+        error: null
       };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
@@ -41,40 +41,72 @@ const authReducer = (state, action) => {
 const initialState = {
   user: null,
   isAuthenticated: false,
-  isLoading: true, // Démarrer en état de chargement pour vérifier la session
+  isLoading: true, // démarrage en chargement
   error: null
 };
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Vérification de session au démarrage avec Laravel Sanctum
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        // Tentative de récupération de l'utilisateur authentifié
-        const user = await authService.getUser();
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-      } catch (error) {
-        // Si erreur 401/403, l'utilisateur n'est pas authentifié
-        if (error.status === 401 || error.status === 403) {
-          dispatch({ type: 'LOGOUT' });
-        } else {
-          dispatch({ type: 'LOGIN_ERROR', payload: 'Erreur de vérification de session' });
-        }
-      }
-    };
+  // Vérif session au montage
+useEffect(() => {
+  const initAuth = async () => {
+    try {
+      const user = await authService.getUser();
+      localStorage.setItem('user', JSON.stringify(user));
+      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+    } catch (err) {
+      dispatch({ type: 'LOGOUT' });
+    }
+  };
+  initAuth();
+}, []);
 
-    checkSession();
-  }, []);
+//   useEffect(() => {
+//   const storedToken = localStorage.getItem('token');
+//   const storedUser  = localStorage.getItem('user');
+
+//   if (storedToken) {
+//     setIsLoading(true);
+//     axios.get('/api/me', {
+//       headers: { Authorization: `Bearer ${storedToken}` }
+//     })
+//     .then(res => {
+//       setUser(res.data);
+//       setIsAuthenticated(true);
+//     })
+//     .catch(() => {
+//       setIsAuthenticated(false);
+//       setUser(null);
+//     })
+//     .finally(() => setIsLoading(false));
+//   } else {
+//     setIsAuthenticated(false);
+//   }
+// }, []);
 
   const login = async (email, password) => {
     dispatch({ type: 'LOGIN_START' });
-    
+
     try {
       const result = await authService.login(email, password);
+
+      // 🔹 Adaptation : ton back renvoie 'token'
+      if (result.token) {
+        localStorage.setItem('token', result.token); // garde le même nom interne
+      }
+
+      if (result.user) {
+        // Patch temporaire si role absent (à corriger côté back)
+        // if (!result.user.role) {
+        //   console.warn("⚠ user sans role, valeur par défaut appliquée pour test");
+        //   result.user.role = 'admin';
+        // }
+        localStorage.setItem('user', JSON.stringify(result.user));
+      }
+
       dispatch({ type: 'LOGIN_SUCCESS', payload: result.user });
-      return { success: true, message: result.message };
+      return { success: true, message: result.message || 'Connexion réussie' };
     } catch (error) {
       dispatch({ type: 'LOGIN_ERROR', payload: error.message });
       return { success: false, error: error.message };
@@ -84,13 +116,12 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout();
-      dispatch({ type: 'LOGOUT' });
-      return { success: true };
     } catch (error) {
-      // Même en cas d'erreur, on déconnecte côté client
-      dispatch({ type: 'LOGOUT' });
       console.error('Erreur lors de la déconnexion:', error);
-      return { success: true }; // On considère comme réussi côté UX
+    } finally {
+      localStorage.removeItem('session_id');
+      localStorage.removeItem('user');
+      dispatch({ type: 'LOGOUT' });
     }
   };
 
@@ -98,23 +129,13 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
-  const hasRole = (requiredRole) => {
-    if (!state.user) return false;
-    return state.user.role === requiredRole;
-  };
+  const hasRole = (requiredRole) => state.user?.role === requiredRole;
 
-  const hasAnyRole = (roles) => {
-    if (!state.user) return false;
-    return roles.includes(state.user.role);
-  };
+  const hasAnyRole = (roles) => roles.includes(state.user?.role);
 
-  // Fonction utilitaire pour vérifier les permissions
   const canAccess = (resource, action = 'read') => {
     if (!state.user) return false;
-
     const { role } = state.user;
-    
-    // Matrice des permissions par rôle
     const permissions = {
       admin: {
         users: ['read', 'create', 'update', 'delete'],
@@ -128,7 +149,7 @@ export const AuthProvider = ({ children }) => {
         users: ['read'],
         materials: ['read'],
         requests: ['read', 'create'],
-        validations: ['read', 'create'], // Peut valider
+        validations: ['read', 'create'],
         deliveries: ['read'],
         settings: []
       },
@@ -136,7 +157,7 @@ export const AuthProvider = ({ children }) => {
         users: ['read'],
         materials: ['read'],
         requests: ['read', 'create'],
-        validations: ['read', 'create'], // Peut valider
+        validations: ['read', 'create'],
         deliveries: ['read'],
         settings: []
       },
@@ -144,7 +165,7 @@ export const AuthProvider = ({ children }) => {
         users: ['read'],
         materials: ['read'],
         requests: ['read', 'create'],
-        validations: ['read', 'create'], // Peut valider
+        validations: ['read', 'create'],
         deliveries: ['read'],
         settings: []
       },
@@ -153,21 +174,19 @@ export const AuthProvider = ({ children }) => {
         materials: ['read', 'create', 'update'],
         requests: ['read'],
         validations: ['read'],
-        deliveries: ['read', 'create', 'update'], // Gestion des livraisons
+        deliveries: ['read', 'create', 'update'],
         settings: []
       },
       agent: {
         users: ['read'],
         materials: ['read'],
-        requests: ['read', 'create'], // Peut créer des demandes
+        requests: ['read', 'create'],
         validations: ['read'],
-        deliveries: ['read'], // Peut voir ses livraisons
+        deliveries: ['read'],
         settings: []
       }
     };
-
-    const userPermissions = permissions[role]?.[resource] || [];
-    return userPermissions.includes(action);
+    return (permissions[role] && permissions[role][resource] || []).includes(action);
   };
 
   const value = {

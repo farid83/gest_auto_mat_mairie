@@ -11,22 +11,19 @@ import { useAuth } from '../contexts/AuthContext';
 const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Nettoyer les erreurs au démarrage
+  useEffect(() => {
+    clearError();
+  }, []);
 
   // Rediriger si déjà authentifié
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  // Nettoyer les erreurs au démarrage
-  useEffect(() => {
-    clearError();
-  }, [clearError]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,16 +41,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    try {
-      const result = await login(formData.email, formData.password);
-      if (result.success) {
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      console.error('Erreur de connexion:', err);
-    } finally {
-      setIsSubmitting(false);
+    const result = await login(formData.email, formData.password);
+    setIsSubmitting(false);
+    if (result.success) {
+      navigate('/dashboard');
     }
   };
 
@@ -62,6 +53,7 @@ const Login = () => {
     { email: 'marie.koffi@adjarra.bj', role: 'Directeur', password: 'password' },
     { email: 'pierre.akoka@adjarra.bj', role: 'Gestionnaire Stock', password: 'password' },
     { email: 'fatou.tomiyo@adjarra.bj', role: 'DAAF', password: 'password' },
+     { email: 'ahmed.soumanou@adjarra.bj', role: 'Secrétaire Exécutif', password: 'password' },
     { email: 'admin@adjarra.bj', role: 'Admin', password: 'password' }
   ];
 
@@ -131,7 +123,7 @@ const Login = () => {
                   type="email"
                   placeholder="votre@email.com"
                   value={formData.email}
-                  onChange={handleChange}
+                  onChange={handleChange} 
                   required
                   className="h-11"
                 />
@@ -181,6 +173,15 @@ const Login = () => {
             </CardFooter>
           </form>
         </Card>
+
+        {/* Lien vers l'inscription */}
+        <div className="text-center text-
+        m my-2">
+          Pas encore de compte ?{' '}
+          <a href="/register" className="text-blue-600 hover:underline">
+            S’inscrire
+          </a>
+        </div>
 
         {/* Connexions rapides de démo */}
         <Card className="shadow-lg">
