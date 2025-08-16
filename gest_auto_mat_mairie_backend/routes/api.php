@@ -81,3 +81,12 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 // Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
 //     return $request->user();
 // });
+
+Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
+    return response()->json($request->user());
+});
+
+Route::middleware('auth:sanctum')->post('/auth/logout', function (Request $request) {
+    $request->user()->currentAccessToken()->delete(); // ou Auth::logout() selon ta config
+    return response()->json(['message' => 'Déconnecté avec succès']);
+});

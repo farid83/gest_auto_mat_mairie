@@ -13,46 +13,19 @@ const api = axios.create({
 
     'X-Requested-With': 'XMLHttpRequest'
   },
-  withCredentials: true // Important pour Laravel Sanctum
+  // withCredentials: true // Important pour Laravel Sanctum
 });
 
 // Intercepteur pour gérer les erreurs globalement
 api.interceptors.response.use(
-
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Redirection vers login ou clear auth state
-      window.location.href = '/login';
+      // On ne redirige pas direct ici → on laisse AuthContext gérer
+      console.warn("401 - Token invalide ou expiré");
     }
 
-    // Format d'erreur standardisé
-
-    const apiError = {
-      message: error.response?.data?.message || 'Une erreur est survenue',
-      errors: error.response?.data?.errors || {},
-      status: error.response?.status || 500
-    };
-    console.error('Raw Axios error:', error);
-    console.error('Request config:', error.config);
-    console.error('Error.request:', error.request);
-
-    return Promise.reject(apiError);
-  }
-);
-// exemple d'interceptor axios
-api.interceptors.response.use(
-  res => res,
-  (error) => {
     const res = error.response;
-    console.error('API error:', {
-      url: res?.config?.url,
-      method: res?.config?.method,
-      status: res?.status,
-      data: res?.data,
-      headers: res?.headers,
-    });
-
     const apiError = {
       message: res?.data?.message || error.message || 'Une erreur est survenue',
       errors: res?.data?.errors || {},
@@ -91,7 +64,7 @@ export const authService = {
   async logout() {
     // Si tu veux révoquer côté serveur, adapte l’URL/méthode
     try {
-      await api.post('/auth/logout');
+      await api.post('/api/auth/logout');
     } catch (err) {
       console.warn('Erreur lors du logout côté serveur', err);
     }
@@ -242,18 +215,16 @@ export const dashboardService = {
     return response.data;
   }
 };
+// Intercepteur requête → ajoute le token
 api.interceptors.request.use((config) => {
-  // Lecture du token déjà stocké
-  const token = localStorage.getItem('token'); // ou 'token' selon ta clé
-  const sid = localStorage.getItem('sessionId');
+  const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
-  config.headers.Accept = 'application/json'; // bien préciser pour éviter HTML par défaut
-
   return config;
 });
+
+
 
 
 // Vérifier le session_id dans le localStorage

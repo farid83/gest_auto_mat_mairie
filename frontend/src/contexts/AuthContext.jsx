@@ -51,16 +51,46 @@ export const AuthProvider = ({ children }) => {
   // Vérif session au montage
 useEffect(() => {
   const initAuth = async () => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    // Si on a déjà un utilisateur en cache → on l'affiche directement
+    if (storedUser && storedToken) {
+      try {
+        dispatch({ type: 'LOGIN_SUCCESS', payload: JSON.parse(storedUser) });
+      } catch (e) {
+        console.warn("Erreur parsing localStorage user", e);
+      }
+    }
+
+    // Si pas de token → on sort direct
+    if (!storedToken) {
+      dispatch({ type: 'LOGOUT' });
+      return;
+    }
+
+    // Sinon → on vérifie côté serveur
     try {
       const user = await authService.getUser();
       localStorage.setItem('user', JSON.stringify(user));
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
     } catch (err) {
-      dispatch({ type: 'LOGOUT' });
+      if (err.status === 401) {
+        // Token invalide → on déconnecte
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        dispatch({ type: 'LOGOUT' });
+      } else {
+        console.error("Erreur initAuth:", err);
+        // On ne déconnecte pas pour une simple erreur réseau
+        dispatch({ type: 'LOGIN_SUCCESS', payload: JSON.parse(storedUser) || null });
+      }
     }
   };
+
   initAuth();
 }, []);
+
 
 //   useEffect(() => {
 //   const storedToken = localStorage.getItem('token');
