@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge';
 import UserForm from './UserForm';
 
 const mockUsers = [
-	{ id: 1, name: 'Jean Dupont', email: 'jean.dupont@adjarra.bj', role: 'agent', active: true },
+	{ id: 3, name: 'Jean Dupont', email: 'jean.dupont@example.com', role: 'user', active: true },
 	{ id: 2, name: 'Marie Koffi', email: 'marie.koffi@adjarra.bj', role: 'directeur', active: true },
 	{ id: 3, name: 'Pierre Akoka', email: 'pierre.akoka@adjarra.bj', role: 'gestionnaire_stock', active: true },
 	{ id: 4, name: 'Fatou Tomiyo', email: 'fatou.tomiyo@adjarra.bj', role: 'daaf', active: false },

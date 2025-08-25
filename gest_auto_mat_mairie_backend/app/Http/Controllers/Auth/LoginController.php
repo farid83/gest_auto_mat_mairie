@@ -28,6 +28,7 @@ if (Auth::attempt($credentials)) {
         'name'  => $user->name,
         'email' => $user->email,
         'role'  => $user->role, // ajouter le rôle ici
+        'token' => $token
     ]
 ]);
 }

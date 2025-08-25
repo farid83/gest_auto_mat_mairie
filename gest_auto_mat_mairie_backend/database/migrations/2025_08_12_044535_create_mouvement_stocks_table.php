@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mouvement_stocks', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+    $table->id();
+    $table->enum('type', ['Entrée', 'Sortie']);
+    $table->foreignId('materiel_id')->constrained('materiels')->onDelete('cascade');
+    $table->integer('quantity');
+   $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // responsable du mouvement
+    $table->date('date');
+    $table->timestamps();
+});
+
     }
 
     /**

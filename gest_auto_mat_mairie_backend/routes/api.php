@@ -11,10 +11,11 @@ use App\Http\Controllers\Api\LivraisonController;
 use App\Http\Controllers\Api\MouvementStockController;
 use App\Http\Controllers\Api\PingController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Service;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,7 +39,7 @@ Route::post('/login', function (Request $request) {
     }
 
     // Création du token Sanctum
-    $token = $user->createToken('token-api')->plainTextToken;
+    $token = $user->createToken('API Token')->plainTextToken;
 
     return response()->json([
         'token' => $token,
@@ -55,12 +56,12 @@ Route::post('/login', function (Request $request) {
 */
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
-    Route::apiResource('materiels', MaterielController::class);
+    // Route::apiResource('materiels', MaterielController::class);
     Route::apiResource('directions', DirectionController::class);
     Route::apiResource('demandes', DemandeController::class);
     Route::apiResource('demande-materiels', DemandeMaterielController::class);
     Route::apiResource('livraisons', LivraisonController::class);
-    Route::apiResource('mouvements', MouvementStockController::class);
+    Route::apiResource('mouvements-stock', MouvementStockController::class);
 
     // Tableau de bord
     Route::get('dashboard/stats', [DashboardController::class, 'getStats']);
@@ -90,3 +91,27 @@ Route::middleware('auth:sanctum')->post('/auth/logout', function (Request $reque
     $request->user()->currentAccessToken()->delete(); // ou Auth::logout() selon ta config
     return response()->json(['message' => 'Déconnecté avec succès']);
 });
+
+Route::get('/services', function() {
+    return Service::all();
+});
+
+Route::post('register', [RegisterController::class, 'register']);
+
+// Route::resource('materiels', MaterielController::class);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/materiels', [MaterielController::class, 'index']);
+    Route::post('/materiels', [MaterielController::class, 'store']);
+    Route::put('/materiels/{materiel}', [MaterielController::class, 'update']);
+    Route::delete('/materiels/{materiel}', [MaterielController::class, 'destroy']);
+});
+
+Route::post('/materiels/{materiel}/sortie', [MaterielController::class, 'sortirStock']);
+Route::post('/materiels/{materiel}/entree', [MaterielController::class, 'entrerStock']);
+
+// Route::middleware('auth:sanctum')->group(function () {
+//     Route::get('/mouvements-stock', [MouvementController::class, 'index']);
+// });
+
+

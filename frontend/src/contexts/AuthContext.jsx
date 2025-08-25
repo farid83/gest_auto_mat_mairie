@@ -49,47 +49,106 @@ export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // Vérif session au montage
-useEffect(() => {
-  const initAuth = async () => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+  useEffect(() => {
+    const initAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-    // Si on a déjà un utilisateur en cache → on l'affiche directement
-    if (storedUser && storedToken) {
-      try {
-        dispatch({ type: 'LOGIN_SUCCESS', payload: JSON.parse(storedUser) });
-      } catch (e) {
-        console.warn("Erreur parsing localStorage user", e);
+      // Si on a déjà un utilisateur en cache → on l'affiche directement
+      if (storedUser && storedToken) {
+        try {
+          dispatch({ type: 'LOGIN_SUCCESS', payload: JSON.parse(storedUser) });
+        } catch (e) {
+          console.warn("Erreur parsing localStorage user", e);
+        }
       }
-    }
 
-    // Si pas de token → on sort direct
-    if (!storedToken) {
-      dispatch({ type: 'LOGOUT' });
-      return;
-    }
-
-    // Sinon → on vérifie côté serveur
-    try {
-      const user = await authService.getUser();
-      localStorage.setItem('user', JSON.stringify(user));
-      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-    } catch (err) {
-      if (err.status === 401) {
-        // Token invalide → on déconnecte
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      // Si pas de token → on sort direct
+      if (!storedToken) {
         dispatch({ type: 'LOGOUT' });
-      } else {
-        console.error("Erreur initAuth:", err);
-        // On ne déconnecte pas pour une simple erreur réseau
-        dispatch({ type: 'LOGIN_SUCCESS', payload: JSON.parse(storedUser) || null });
+        return;
       }
-    }
-  };
 
-  initAuth();
-}, []);
+      // Sinon → on vérifie côté serveur
+      try {
+        const user = await authService.getUser();
+        localStorage.setItem('user', JSON.stringify(user));
+        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+      } catch (err) {
+        if (err.status === 401) {
+          // Token invalide → on déconnecte
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          dispatch({ type: 'LOGOUT' });
+        } else {
+          console.error("Erreur initAuth:", err);
+          // On ne déconnecte pas pour une simple erreur réseau
+          dispatch({ type: 'LOGIN_SUCCESS', payload: JSON.parse(storedUser) || null });
+        }
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  // // Gestion de la déconnexion automatique
+  // useEffect(() => {
+  //   // Déconnexion après 10 minutes d'inactivité
+  //   const inactivityTimeout = setTimeout(() => {
+  //     if (state.isAuthenticated) {
+  //       console.log("Déconnexion automatique après 10 minutes d'inactivité");
+  //       logout();
+  //     }
+  //   }, 10 * 60 * 1000); // 10 minutes
+
+  //   // Écouteur d'événements pour réinitialiser le timer d'inactivité
+  //   const resetInactivityTimer = () => {
+  //     clearTimeout(inactivityTimeout);
+  //     // Redémarre le timer
+  //     setTimeout(() => {
+  //       if (state.isAuthenticated) {
+  //         console.log("Déconnexion automatique après 10 minutes d'inactivité");
+  //         logout();
+  //       }
+  //     }, 10 * 60 * 1000);
+  //   };
+
+  //   // Écouteurs d'événements d'activité
+  //   window.addEventListener('mousemove', resetInactivityTimer);
+  //   window.addEventListener('keypress', resetInactivityTimer);
+  //   window.addEventListener('click', resetInactivityTimer);
+  //   window.addEventListener('scroll', resetInactivityTimer);
+  //   window.addEventListener('touchstart', resetInactivityTimer);
+
+  //   // Nettoyage des écouteurs au démontage
+  //   return () => {
+  //     clearTimeout(inactivityTimeout);
+  //     window.removeEventListener('mousemove', resetInactivityTimer);
+  //     window.removeEventListener('keypress', resetInactivityTimer);
+  //     window.removeEventListener('click', resetInactivityTimer);
+  //     window.removeEventListener('scroll', resetInactivityTimer);
+  //     window.removeEventListener('touchstart', resetInactivityTimer);
+  //   };
+  // }, [state.isAuthenticated]);
+
+  // Gestion de la fermeture/rafraîchissement de la page
+  // useEffect(() => {
+  //   const handleBeforeUnload = (event) => {
+  //     if (state.isAuthenticated) {
+  //       console.log("Déconnexion automatique lors de la fermeture/rafraîchissement de la page");
+  //       // On ne peut pas appeler logout() directement car la page se ferme
+  //       // On marque simplement la session comme expirée
+  //       localStorage.removeItem('token');
+  //       localStorage.removeItem('user');
+  //     }
+  //   };
+
+  //   window.addEventListener('beforeunload', handleBeforeUnload);
+
+  //   return () => {
+  //     window.removeEventListener('beforeunload', handleBeforeUnload);
+  //   };
+  // }, [state.isAuthenticated]);
 
 
 //   useEffect(() => {

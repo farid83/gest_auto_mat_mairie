@@ -35,6 +35,14 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+          Schema::table('users', function (Blueprint $table) {
+            $table->foreignId('service_id')
+                  ->nullable()
+                  ->constrained('services')
+                  ->onDelete('set null')
+                  ->after('role'); // position facultative
+        });
     }
 
     /**
@@ -45,5 +53,10 @@ return new class extends Migration
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['service_id']);
+            $table->dropColumn('service_id');
+        });
     }
 };

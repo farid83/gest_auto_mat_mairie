@@ -2,9 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Materiel extends Model
 {
-    //
+    use HasFactory;
+    protected $table = 'materiels'; // important car ta table s’appelle "materiels"
+
+    protected $fillable = [
+        'nom',
+        'categorie',
+        'quantite_totale',
+        'quantite_disponible',
+        'etat',
+        'quantite_totale',
+        'quantite_disponible',
+
+    ];
+
+    protected static function booted()
+    {
+        static::creating(function ($materiel) {
+            $materiel->quantite_disponible = $materiel->quantite_totale;
+        });
+    }
 }

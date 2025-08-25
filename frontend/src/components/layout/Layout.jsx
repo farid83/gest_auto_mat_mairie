@@ -38,9 +38,9 @@ console.log("LocalStorage ->",
 
   // Menu items avec rôles uniformisés
   const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/dashboard', roles: ['agent','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
+    { icon: Home, label: 'Dashboard', path: '/dashboard', roles: ['user','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
     { icon: Package, label: 'Matériels', path: '/materials', roles: ['gestionnaire_stock','admin','secretaire_executif','daaf'] },
-    { icon: FileText, label: 'Demandes', path: '/requests', roles: ['agent','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
+    { icon: FileText, label: 'Demandes', path: '/requests', roles: ['user','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
     { icon: CheckSquare, label: 'Validations', path: '/validations', roles: ['directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
     { icon: Truck, label: 'Livraisons', path: '/deliveries', roles: ['gestionnaire_stock','daaf','admin'] },
     { icon: Users, label: 'Utilisateurs', path: '/users', roles: ['admin'] },

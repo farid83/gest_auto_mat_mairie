@@ -6,7 +6,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-   'allowed_origins' => ['http://localhost:3000'], // à restreindre si nécessaire pour éviter les risques de sécurité
+   'allowed_origins' => ['*'], // à restreindre si nécessaire pour éviter les risques de sécurité
 
     'allowed_origins_patterns' => [],
 

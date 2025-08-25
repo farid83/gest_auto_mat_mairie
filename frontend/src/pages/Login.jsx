@@ -49,20 +49,20 @@ const Login = () => {
   };
 
   const quickLoginButtons = [
-    { email: 'jean.dupont@adjarra.bj', role: 'Agent', password: 'password' },
-    { email: 'marie.koffi@adjarra.bj', role: 'Directeur', password: 'password' },
-    { email: 'pierre.akoka@adjarra.bj', role: 'Gestionnaire Stock', password: 'password' },
-    { email: 'fatou.tomiyo@adjarra.bj', role: 'DAAF', password: 'password' },
+    { email: 'jean.dupont@example.com', role: 'Directeur', password: 'password123' },
+    { email: 'marie.koffi@example.com', role: 'CM', password: 'password123' },
+    { email: 'pierre.akoka@example.com', role: 'Secretaire Executif', password: 'password123' },
+    { email: 'fatou.tomiyo@example.com', role: 'DAAF', password: 'password123' },
      { email: 'ahmed.soumanou@adjarra.bj', role: 'Secrétaire Exécutif', password: 'password' },
-    { email: 'admin@adjarra.bj', role: 'Admin', password: 'password' }
+    { email: 'admin@example.com', role: 'admin', password: 'secret' }
   ];
 
   const handleQuickLogin = async (email) => {
-    setFormData({ email, password: 'password' });
+    setFormData({ email, password: 'password123' });
     setIsSubmitting(true);
     
     try {
-      const result = await login(email, 'password');
+      const result = await login(email, 'password123');
       if (result.success) {
         navigate('/dashboard');
       }

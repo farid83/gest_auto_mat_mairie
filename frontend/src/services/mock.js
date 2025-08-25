@@ -2,9 +2,9 @@
 
 export const mockUsers = [
   {
-    id: 1,
+    id: 3,
     name: "Jean Dupont",
-    email: "jean.dupont@adjarra.bj",
+    email: "jean.dupont@example.com",
     role: "agent",
     direction: "Direction des Travaux Publics",
     active: true,
@@ -13,7 +13,7 @@ export const mockUsers = [
   {
     id: 2,
     name: "Marie Koffi",
-    email: "marie.koffi@adjarra.bj",
+    email: "marie.koffi@example.com",
     role: "directeur",
     direction: "Direction des Affaires Sociales",
     active: true,

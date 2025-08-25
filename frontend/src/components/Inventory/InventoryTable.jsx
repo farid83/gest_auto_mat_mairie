@@ -1,130 +1,264 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Table } from '../ui/table';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
 import MaterialForm from './MaterialForm';
-
-const mockInventory = [
-	{
-		id: 1,
-		name: 'Ordinateur portable',
-		category: 'Informatique',
-		total: 10,
-		available: 7,
-		state: 'Bon',
-	},
-	{
-		id: 2,
-		name: 'Imprimante',
-		category: 'Informatique',
-		total: 5,
-		available: 2,
-		state: 'À réparer',
-	},
-	{
-		id: 3,
-		name: 'Bureau',
-		category: 'Mobilier',
-		total: 20,
-		available: 18,
-		state: 'Bon',
-	},
-];
+import { useAuth } from '../../contexts/AuthContext';
 
 const stateColors = {
-	Bon: 'bg-green-100 text-green-800',
-	'À réparer': 'bg-orange-100 text-orange-800',
-	HS: 'bg-red-100 text-red-800',
+    Bon: 'bg-green-100 text-green-800',
+    Neuf: 'bg-green-50 text-green-800',
+    'À réparer': 'bg-orange-100 text-orange-800',
+    HS: 'bg-red-100 text-red-800',
 };
 
+// Définition simple de l'URL
+const API_URL = 'http://127.0.0.1:8000/api/materiels';
+
 const InventoryTable = () => {
-	const [inventory, setInventory] = useState(mockInventory);
-	const [formOpen, setFormOpen] = useState(false);
-	const [editMaterial, setEditMaterial] = useState(null);
+    const [inventory, setInventory] = useState([]);
+    const [formOpen, setFormOpen] = useState(false);
+    const [editMaterial, setEditMaterial] = useState(null);
+    const [sortOrder, setSortOrder] = useState('asc'); // 'asc' ou 'desc'
+    const [searchTerm, setSearchTerm] = useState(''); // Pour la recherche
+    const { user, hasAnyRole } = useAuth(); // 🔹 Récupérer les informations d'authentification
 
-	const handleAdd = () => {
-		setEditMaterial(null);
-		setFormOpen(true);
-	};
+    // 🔹 Récupérer le token depuis localStorage (ou contexte)
+    const getToken = () => localStorage.getItem('token'); // token enregistré au login
 
-	const handleEdit = (material) => {
-		setEditMaterial(material);
-		setFormOpen(true);
-	};
+    // 🔹 Charger les matériels depuis l'API
+    const fetchInventory = async () => {
+        const token = getToken();
+        if (!token) {
+            console.error('Token non trouvé. Veuillez vous connecter.');
+            return;
+        }
 
-	const handleSave = (materialData) => {
-		// Ajoute ou modifie le matériel dans ton state ou via API
-		setFormOpen(false);
-	};
+        try {
+            const response = await axios.get(API_URL, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setInventory(response.data.data || response.data);
+        } catch (error) {
+            console.error('Erreur lors du chargement de l’inventaire :', error);
+        }
+    };
 
-	return (
-		<Card className="shadow-xl border-0">
-			<CardHeader>
-				<CardTitle>Inventaire des matériels</CardTitle>
-				<div className="flex gap-2 mt-2">
-					<Button size="sm" onClick={handleAdd}>
-						Ajouter
-					</Button>
-					<Button size="sm" variant="outline">
-						Exporter
-					</Button>
-				</div>
-			</CardHeader>
-			<CardContent>
-				<Table>
-					<thead>
-						<tr>
-							<th>Nom</th>
-							<th>Catégorie</th>
-							<th>Quantité totale</th>
-							<th>Disponible</th>
-							<th>État</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						{inventory.map((item) => (
-							<tr key={item.id}>
-								<td>{item.name}</td>
-								<td>{item.category}</td>
-								<td>{item.total}</td>
-								<td>{item.available}</td>
-								<td>
-									<Badge
-										className={
-											stateColors[item.state] ||
-											'bg-gray-100 text-gray-800'
-										}
-									>
-										{item.state}
-									</Badge>
-								</td>
-								<td>
-									<Button
-										size="sm"
-										variant="ghost"
-										onClick={() => handleEdit(item)}
-									>
-										Modifier
-									</Button>
-									<Button size="sm" variant="destructive">
-										Supprimer
-									</Button>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</Table>
-			</CardContent>
-			<MaterialForm
-				open={formOpen}
-				onClose={() => setFormOpen(false)}
-				onSave={handleSave}
-				initialData={editMaterial}
-			/>
-		</Card>
-	);
+    useEffect(() => {
+        fetchInventory();
+    }, []);
+
+    // 🔹 Fonction de tri par nom
+    const sortByName = () => {
+        const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+        setSortOrder(newOrder);
+    };
+
+    // 🔹 Fonction de filtrage par recherche
+    const filteredAndSortedInventory = () => {
+        // Filtrer par recherche
+        let result = inventory.filter(item =>
+            item.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.categorie.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        // Trier par nom
+        result.sort((a, b) => {
+            const nameA = a.nom.toLowerCase();
+            const nameB = b.nom.toLowerCase();
+            if (sortOrder === 'asc') {
+                return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+            } else {
+                return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+            }
+        });
+        
+        return result;
+    };
+
+    // 🔹 Ajouter ou éditer un matériel
+    const handleSave = async (materialData) => {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            if (editMaterial) {
+                await axios.put(`${API_URL}/${editMaterial.id}`, materialData, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } else {
+                await axios.post(API_URL, materialData, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            }
+            fetchInventory();
+            setFormOpen(false);
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde :', error);
+        }
+    };
+
+    // 🔹 Supprimer un matériel
+    const handleDelete = async (id) => {
+        if (!window.confirm('Voulez-vous vraiment supprimer ce matériel ?')) return;
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            await axios.delete(`${API_URL}/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            setInventory(inventory.filter((item) => item.id !== id));
+        } catch (error) {
+            console.error('Erreur lors de la suppression :', error);
+        }
+    };
+
+    // 🔹 Générer le PDF
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        const date = new Date().toLocaleDateString('fr-FR');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        
+        // Entête
+        doc.setFontSize(18);
+        doc.text('Inventaire des matériels', pageWidth / 2, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`Date d'export : ${date}`, pageWidth - 20, 30, { align: 'right' });
+        
+        // En-têtes du tableau
+        const headers = [['Nom', 'Catégorie', 'Quantité totale', 'Disponible', 'État']];
+        const data = filteredAndSortedInventory().map(item => [
+            item.nom,
+            item.categorie,
+            item.quantite_totale.toString(),
+            item.quantite_disponible.toString(),
+            item.etat
+        ]);
+        
+        // Corps du tableau
+        autoTable(doc, {
+            startY: 40,
+            head: headers,
+            body: data,
+            theme: 'grid',
+            styles: { font: 'helvetica', fontSize: 10 },
+            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+            columnStyles: { 4: { cellWidth: 30 } }
+        });
+        
+        // Pied de page
+        const pageCount = doc.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.text(`Page ${i}/${pageCount}`, pageWidth - 20, doc.internal.pageSize.getHeight() - 10);
+            doc.text("Mairie de Porto-Novo - Service Matériel", 20, doc.internal.pageSize.getHeight() - 10);
+        }
+        
+        doc.save(`inventaire_${date.replace(/\//g, '-')}.pdf`);
+    };
+
+    // 🔹 Vérifier si l'utilisateur a le droit de supprimer
+    const canDelete = hasAnyRole(['admin']);
+
+    return (
+        <Card className="shadow-xl border-0">
+            <CardHeader>
+                <CardTitle>Inventaire des matériels</CardTitle>
+                <div className="flex flex-col md:flex-row gap-2 mt-2">
+                    <div className="flex-1 flex gap-2">
+                        <Button size="sm" onClick={() => { setEditMaterial(null); setFormOpen(true); }}>
+                            Ajouter
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleExportPDF}>
+                            Exporter
+                        </Button>
+                    </div> 
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:flex-none w-full md:w-64">
+                            <Input
+                                type="text"
+                                placeholder="Rechercher un matériel..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={sortByName}
+                        >
+                            Trier par nom {sortOrder === 'asc' ? '↑' : '↓'}
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Table className="">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Catégorie</th>
+                            <th>Quantité totale</th>
+                            <th>Disponible</th>
+                            <th>État</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredAndSortedInventory().map((item) => (
+                            <tr key={item.id}>
+                                <td>{item.nom}</td>
+                                <td>{item.categorie}</td>
+                                <td>{item.quantite_totale}</td>
+                                <td>{item.quantite_disponible}</td>
+                                <td>
+                                    <Badge className={stateColors[item.etat] || 'bg-gray-100 text-gray-800'}>
+                                        {item.etat}
+                                    </Badge>
+                                </td>
+                                <td>
+                                      {canDelete && ( // 🔹 Afficher le bouton de suppression ou modification uniquement si l'utilisateur a le droit
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => { setEditMaterial(item); setFormOpen(true); }}
+                                    >
+                                        Modifier
+                                    </Button>
+                                    )}
+                                    {canDelete && ( // 🔹 Afficher le bouton de suppression uniquement si l'utilisateur a le droit
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() => handleDelete(item.id)}
+                                        >
+                                            Supprimer
+                                        </Button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            </CardContent>
+            <MaterialForm
+                open={formOpen}
+                onClose={() => setFormOpen(false)}
+                onSave={handleSave}
+                initialData={editMaterial}
+            />
+        </Card>
+    );
 };
 
 export default InventoryTable;

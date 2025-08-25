@@ -10,11 +10,12 @@ const api = axios.create({
     'Accept': 'application/json',
     xsrfCookieName: 'XSRF-TOKEN',
     xsrfHeaderName: 'X-XSRF-TOKEN',
-
     'X-Requested-With': 'XMLHttpRequest'
   },
-  // withCredentials: true // Important pour Laravel Sanctum
+  withCredentials: true // Important pour Laravel Sanctum
 });
+
+
 
 // Intercepteur pour gérer les erreurs globalement
 api.interceptors.response.use(
@@ -121,22 +122,24 @@ export const directionsService = {
 // Service matériels
 export const materialsService = {
   async getMaterials(params = {}) {
-    const response = await api.get('/materials', { params });
+    const response = await api.get('/api/materiels', { params });
     return response.data;
   },
 
+
+
   async createMaterial(materialData) {
-    const response = await api.post('/materials', materialData);
+    const response = await api.post('/api/materiels', materialData);
     return response.data;
   },
 
   async updateMaterial(id, materialData) {
-    const response = await api.put(`/materials/${id}`, materialData);
+    const response = await api.put(`/api/materiels/${id}`, materialData);
     return response.data;
   },
 
   async deleteMaterial(id) {
-    const response = await api.delete(`/materials/${id}`);
+    const response = await api.delete(`/api/materiels/${id}`);
     return response.data;
   }
 };
@@ -144,22 +147,22 @@ export const materialsService = {
 // Service demandes
 export const requestsService = {
   async getRequests(params = {}) {
-    const response = await api.get('/requests', { params });
+    const response = await api.get('/api/demandes/', { params });
     return response.data;
   },
 
   async getRequest(id) {
-    const response = await api.get(`/requests/${id}`);
+    const response = await api.get(`/api/demandes/${id}`);
     return response.data;
   },
 
   async createRequest(requestData) {
-    const response = await api.post('/requests', requestData);
+    const response = await api.post('/api/demandes/', requestData);
     return response.data;
   },
 
   async validateRequest(id, validationData) {
-    const response = await api.post(`/requests/${id}/validate`, validationData);
+    const response = await api.post(`/api/demandes/${id}/validate`, validationData);
     return response.data;
   }
 };
@@ -204,6 +207,19 @@ export const notificationsService = {
 
   async markAllAsRead() {
     const response = await api.put('/notifications/mark-all-read');
+    return response.data;
+  }
+};
+
+// Service mouvements de stock
+export const mouvementStockService = {
+  async getMouvements(params = {}) {
+    const response = await api.get('/api/mouvements-stock', { params });
+    return response.data;
+  },
+
+  async createMouvement(mouvementData) {
+    const response = await api.post('/api/mouvements-stock', mouvementData);
     return response.data;
   }
 };

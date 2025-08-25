@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Loader2, Package } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,15 +6,21 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { useMaterials, useCreateRequest } from '../hooks/useApi';
 
 const RequestsNew = () => {
   const navigate = useNavigate();
+  const { data: materialsData, isLoading: materialsLoading } = useMaterials();
   const [materials, setMaterials] = useState([
     { material: '', quantity: '', justification: '' }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const materialInputRefs = useRef([]);
 
   const handleChange = (idx, e) => {
     const { name, value } = e.target;
@@ -35,6 +41,68 @@ const RequestsNew = () => {
     setMaterials(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Fonction pour filtrer les suggestions en fonction de la saisie
+  const getSuggestions = (value) => {
+    if (!value || !materialsData) return [];
+    
+    const inputValue = value.toLowerCase();
+    return materialsData.filter(material =>
+      material.nom.toLowerCase().includes(inputValue)
+    ).slice(0, 5); // Limiter à 5 suggestions
+  };
+
+  // Fonction pour gérer le changement de valeur dans le champ matériel
+  const handleMaterialChange = (idx, value) => {
+    setMaterials(prev =>
+      prev.map((item, i) =>
+        i === idx ? { ...item, material: value } : item
+      )
+    );
+    
+    // Mettre à jour les suggestions
+    const newSuggestions = getSuggestions(value);
+    setSuggestions(newSuggestions);
+    setShowSuggestions(newSuggestions.length > 0);
+    setActiveSuggestionIndex(-1);
+    
+    setError('');
+    setSuccess('');
+  };
+
+  // Fonction pour gérer la sélection d'une suggestion
+  const handleSuggestionClick = (idx, suggestion) => {
+    setMaterials(prev =>
+      prev.map((item, i) =>
+        i === idx ? { ...item, material: suggestion.nom } : item
+      )
+    );
+    setShowSuggestions(false);
+    setActiveSuggestionIndex(-1);
+  };
+
+  // Fonction pour gérer les événements clavier
+  const handleKeyDown = (idx, e) => {
+    if (!showSuggestions) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev =>
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => prev > 0 ? prev - 1 : 0);
+    } else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionClick(idx, suggestions[activeSuggestionIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+    }
+  };
+
+  const { mutate: createRequest, isLoading: isCreating } = useCreateRequest();
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -42,18 +110,15 @@ const RequestsNew = () => {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:8001/api/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materials })
+      createRequest({ materials }, {
+        onSuccess: (data) => {
+          setSuccess('Demande envoyée avec succès !');
+          setTimeout(() => navigate('/dashboard'), 1500);
+        },
+        onError: (error) => {
+          setError(error.message || 'Erreur lors de la demande');
+        }
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSuccess('Demande envoyée avec succès !');
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } else {
-        setError(data.message || 'Erreur lors de la demande');
-      }
     } catch (err) {
       setError('Erreur réseau');
     } finally {
@@ -106,20 +171,48 @@ const RequestsNew = () => {
                   <div className="col-span-1"></div>
                 </div>
                 {materials.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 mb-2">
-                    <Input
-                      name="material"
-                      type="text"
-                      placeholder="Ex: Ordinateur portable"
-                      value={item.material}
-                      onChange={e => handleChange(idx, e)}
-                      required
-                      className="col-span-4 h-11"
-                    />
+                  <div key={idx} className="grid grid-cols-12 gap-2 mb-2 relative">
+                    <div className="col-span-4 h-11 relative">
+                      <Input
+                        name="material"
+                        type="text"
+                        placeholder="Ex: Ordinateur portable"
+                        value={item.material}
+                        onChange={e => handleMaterialChange(idx, e.target.value)}
+                        onKeyDown={e => handleKeyDown(idx, e)}
+                        onFocus={() => {
+                          const newSuggestions = getSuggestions(item.material);
+                          setSuggestions(newSuggestions);
+                          setShowSuggestions(newSuggestions.length > 0);
+                          setActiveSuggestionIndex(-1);
+                        }}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                        required
+                        className="w-full h-11"
+                      />
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {suggestions.map((suggestion, suggestionIdx) => (
+                            <div
+                              key={suggestion.id}
+                              className={`px-4 py-2 cursor-pointer ${
+                                activeSuggestionIndex === suggestionIdx
+                                  ? 'bg-blue-100 dark:bg-blue-900'
+                                  : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                              }`}
+                              onMouseDown={() => handleSuggestionClick(idx, suggestion)}
+                            >
+                              {suggestion.nom}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <Input
                       name="quantity"
                       type="number"
                       min="1"
+                      max="100"
                       placeholder="Ex: 2"
                       value={item.quantity}
                       onChange={e => handleChange(idx, e)}
@@ -132,7 +225,7 @@ const RequestsNew = () => {
                       placeholder="Motif"
                       value={item.justification}
                       onChange={e => handleChange(idx, e)}
-                      required
+                      // required
                       className="col-span-5 h-11"
                     />
                     <div className="col-span-1 flex items-center justify-center">
