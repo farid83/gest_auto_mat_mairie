@@ -28,6 +28,11 @@ class MaterielController extends Controller
             'etat' => 'required|string|max:255',
         ]);
 
+         // ✅ Vérification AVANT insertion
+    if (Materiel::whereRaw('LOWER(nom) = ?', [strtolower($request->nom)])->exists()) {
+        return response()->json(['message' => 'Matériel déjà existant'], 409);
+    }
+
         $materiel = Materiel::create([
             'nom' => $request->nom,
             'categorie' => $request->categorie,
@@ -37,19 +42,20 @@ class MaterielController extends Controller
         ]);
 
         // Enregistrement automatique d’un mouvement de type "entrée"
-    MouvementStock::create([
-        'materiel_id' => $materiel->id,
-        'user_id' => Auth::id(), // ou null si pas obligatoire
-        'type' => 'Entrée',
-        'quantity' => $materiel->quantite_totale,
-        'description' => 'Ajout initial du matériel',
-        'date'        => now(),
-    ]);
+        MouvementStock::create([
+            'materiel_id' => $materiel->id,
+            'user_id' => Auth::id(), // ou null si pas obligatoire
+            'type' => 'Entrée',
+            'quantity' => $materiel->quantite_totale,
+            'description' => 'Ajout initial du matériel',
+            'date'        => now(),
+        ]);
 
         return response()->json([
             'message' => 'Matériel ajouté avec succès.',
             'data' => $materiel
         ], 201);
+        \Log::info('Création matériel', $request->all());
     }
 
     // Mettre à jour un matériel
@@ -116,7 +122,4 @@ class MaterielController extends Controller
 
         return response()->json($materiel);
     }
-
-    
-
 }

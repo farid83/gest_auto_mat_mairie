@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Table } from '../ui/table';
@@ -9,6 +8,8 @@ import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import MaterialForm from './MaterialForm';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
+import { materialsService } from '../../services/api';
 
 const stateColors = {
     Bon: 'bg-green-100 text-green-800',
@@ -17,8 +18,6 @@ const stateColors = {
     HS: 'bg-red-100 text-red-800',
 };
 
-// Définition simple de l'URL
-const API_URL = 'http://127.0.0.1:8000/api/materiels';
 
 const InventoryTable = () => {
     const [inventory, setInventory] = useState([]);
@@ -28,27 +27,14 @@ const InventoryTable = () => {
     const [searchTerm, setSearchTerm] = useState(''); // Pour la recherche
     const { user, hasAnyRole } = useAuth(); // 🔹 Récupérer les informations d'authentification
 
-    // 🔹 Récupérer le token depuis localStorage (ou contexte)
-    const getToken = () => localStorage.getItem('token'); // token enregistré au login
 
     // 🔹 Charger les matériels depuis l'API
     const fetchInventory = async () => {
-        const token = getToken();
-        if (!token) {
-            console.error('Token non trouvé. Veuillez vous connecter.');
-            return;
-        }
-
         try {
-            const response = await axios.get(API_URL, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            setInventory(response.data.data || response.data);
+            const response = await materialsService.getMaterials();
+            setInventory(response.data || response);
         } catch (error) {
-            console.error('Erreur lors du chargement de l’inventaire :', error);
+            console.error('Erreur lors du chargement de l\'inventaire :', error);
         }
     };
 
@@ -85,40 +71,37 @@ const InventoryTable = () => {
     };
 
     // 🔹 Ajouter ou éditer un matériel
-    const handleSave = async (materialData) => {
-        const token = getToken();
-        if (!token) return;
-
-        try {
-            if (editMaterial) {
-                await axios.put(`${API_URL}/${editMaterial.id}`, materialData, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-            } else {
-                await axios.post(API_URL, materialData, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-            }
-            fetchInventory();
-            setFormOpen(false);
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde :', error);
+ const handleSave = async (materialData) => {
+    try {
+        if (editMaterial) {
+            await materialsService.updateMaterial(editMaterial.id, materialData);
+            toast.success('Matériel modifié avec succès !');
+        } else {
+            await materialsService.createMaterial(materialData);
+            toast.success('Matériel ajouté avec succès !');
         }
-    };
+
+        await fetchInventory();
+        setFormOpen(false);
+
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde :', error);
+        toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+        // ⛔ Pas de fetchInventory ici, sinon l'UI se rafraîchit à tort
+    }
+};
 
     // 🔹 Supprimer un matériel
     const handleDelete = async (id) => {
         if (!window.confirm('Voulez-vous vraiment supprimer ce matériel ?')) return;
-        const token = getToken();
-        if (!token) return;
 
         try {
-            await axios.delete(`${API_URL}/${id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await materialsService.deleteMaterial(id);
             setInventory(inventory.filter((item) => item.id !== id));
+            toast.success('Matériel supprimé avec succès !');
         } catch (error) {
             console.error('Erreur lors de la suppression :', error);
+            toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
         }
     };
 
@@ -205,28 +188,28 @@ const InventoryTable = () => {
             <CardContent>
                 <Table className="">
                     <thead>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Catégorie</th>
-                            <th>Quantité totale</th>
-                            <th>Disponible</th>
-                            <th>État</th>
-                            <th>Actions</th>
+                        <tr className="text-center">
+                            <th className="text-center">Nom</th>
+                            <th className="text-center">Catégorie</th>
+                            <th className="text-center">Quantité totale</th>
+                            <th className="text-center">Disponible</th>
+                            <th className="text-center">État</th>
+                            <th className="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredAndSortedInventory().map((item) => (
-                            <tr key={item.id}>
-                                <td>{item.nom}</td>
-                                <td>{item.categorie}</td>
-                                <td>{item.quantite_totale}</td>
-                                <td>{item.quantite_disponible}</td>
-                                <td>
+                            <tr key={item.id} className="text-center">
+                                <td className="align-middle">{item.nom}</td>
+                                <td className="align-middle">{item.categorie}</td>
+                                <td className="align-middle">{item.quantite_totale}</td>
+                                <td className="align-middle">{item.quantite_disponible}</td>
+                                <td className="align-middle">
                                     <Badge className={stateColors[item.etat] || 'bg-gray-100 text-gray-800'}>
                                         {item.etat}
                                     </Badge>
                                 </td>
-                                <td>
+                                <td className="align-middle">
                                       {canDelete && ( // 🔹 Afficher le bouton de suppression ou modification uniquement si l'utilisateur a le droit
                                     <Button
                                         size="sm"

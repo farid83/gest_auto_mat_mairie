@@ -131,6 +131,7 @@ export const materialsService = {
   async createMaterial(materialData) {
     const response = await api.post('/api/materiels', materialData);
     return response.data;
+    console.log('Soumission du formulaire', form);
   },
 
   async updateMaterial(id, materialData) {

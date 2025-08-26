@@ -6,6 +6,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { materialsService, mouvementStockService } from '../../services/api';
+
 const categories = [
   { value: 'Informatique', label: 'Informatique' },
   { value: 'Équipement', label: 'Équipement' },
@@ -66,6 +67,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
   const handleEtatChange = (value) => setForm(prev => ({ ...prev, etat: value }));
 
 
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,6 +81,8 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
       toast.error('La quantité totale doit être supérieure ou égale à la quantité disponible.');
       return;
     }
+    if (loading) return; // ignore si déjà en cours
+    setLoading(true);
 
     try {
       const payload = { ...form };
@@ -89,7 +93,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
         toast.success('Matériel modifié avec succès !');
       } else {
         // Cas de création - on vérifie si le matériel existe déjà
-        const materialsList = await materialsService.getMaterials(); 
+        const materialsList = await materialsService.getMaterials();
         const exists = materialsList.some(
           m => m.nom.toLowerCase() === form.nom.toLowerCase()
         );
@@ -113,16 +117,23 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
         etat: 'Bon',
       });
 
-      // 🔹 Rafraîchissement de l'inventaire
-      onSave(payload);
-
       // 🔹 Fermeture du formulaire/modal
       onClose();
 
     } catch (error) {
-      toast.error(error.message || 'Erreur lors de la sauvegarde.');
-      console.error(error);
+      console.error('Erreur lors de la création du matériel', error);
+
+      if (error.response?.status === 409) {
+        toast.error('Ce matériel existe déjà dans la base.');
+
+      } else {
+        toast.error(error.message || 'Erreur inconnue.');
+      }
     }
+    finally {
+      setLoading(false);
+    }
+    console.log('Soumission du formulaire', form);
   };
 
   // Vérifie si l'utilisateur a le droit de modifier ou supprimer
@@ -144,7 +155,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
             label="Nom du matériel"
             placeholder="Entrez le nom du matériel"
             value={form.nom}
-            
+
             onChange={handleChange}
             required
             disabled={isEdit && !isAdmin}
@@ -199,7 +210,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
 
           <DialogFooter>
             <Button type="submit" disabled={isEdit && !isAdmin}>
-              {isEdit ? 'Enregistrer' : 'Ajouter'}
+              {loading ? 'Enregistrement...' : isEdit ? 'Enregistrer' : 'Ajouter'}
             </Button>
             <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
           </DialogFooter>
