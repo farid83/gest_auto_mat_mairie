@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Materiel;
 use Illuminate\Http\Request;
-use App\Models\MouvementStock;
-use Illuminate\Support\Facades\Auth;
 
 class MaterielController extends Controller
 {
@@ -28,10 +26,10 @@ class MaterielController extends Controller
             'etat' => 'required|string|max:255',
         ]);
 
-         // ✅ Vérification AVANT insertion
-    if (Materiel::whereRaw('LOWER(nom) = ?', [strtolower($request->nom)])->exists()) {
-        return response()->json(['message' => 'Matériel déjà existant'], 409);
-    }
+        // Vérification avant insertion
+        if (Materiel::whereRaw('LOWER(nom) = ?', [strtolower($request->nom)])->exists()) {
+            return response()->json(['message' => 'Matériel déjà existant'], 409);
+        }
 
         $materiel = Materiel::create([
             'nom' => $request->nom,
@@ -41,21 +39,10 @@ class MaterielController extends Controller
             'etat' => $request->etat,
         ]);
 
-        // Enregistrement automatique d’un mouvement de type "entrée"
-        MouvementStock::create([
-            'materiel_id' => $materiel->id,
-            'user_id' => Auth::id(), // ou null si pas obligatoire
-            'type' => 'Entrée',
-            'quantity' => $materiel->quantite_totale,
-            'description' => 'Ajout initial du matériel',
-            'date'        => now(),
-        ]);
-
         return response()->json([
             'message' => 'Matériel ajouté avec succès.',
             'data' => $materiel
         ], 201);
-        \Log::info('Création matériel', $request->all());
     }
 
     // Mettre à jour un matériel
@@ -93,33 +80,5 @@ class MaterielController extends Controller
         return response()->json([
             'message' => 'Matériel supprimé avec succès.'
         ]);
-    }
-
-    public function sortirStock(Request $request, Materiel $materiel)
-    {
-        $request->validate([
-            'quantite' => 'required|integer|min:1',
-        ]);
-
-        if ($materiel->quantite_disponible < $request->quantite) {
-            return response()->json(['message' => 'Quantité disponible insuffisante'], 400);
-        }
-
-        $materiel->quantite_disponible -= $request->quantite;
-        $materiel->save();
-
-        return response()->json($materiel);
-    }
-
-    public function entrerStock(Request $request, Materiel $materiel)
-    {
-        $request->validate([
-            'quantite' => 'required|integer|min:1',
-        ]);
-
-        $materiel->quantite_disponible += $request->quantite;
-        $materiel->save();
-
-        return response()->json($materiel);
     }
 }

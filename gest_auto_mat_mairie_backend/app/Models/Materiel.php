@@ -16,8 +16,6 @@ class Materiel extends Model
         'quantite_totale',
         'quantite_disponible',
         'etat',
-        'quantite_totale',
-        'quantite_disponible',
 
     ];
 

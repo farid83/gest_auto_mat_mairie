@@ -15,6 +15,13 @@ const api = axios.create({
   withCredentials: true // Important pour Laravel Sanctum
 });
 
+// Callback pour refresh auto de la page matériels
+// après création/modification/suppression 
+let onMaterialsChange = null;
+
+export const setMaterialsChangeCallback = (callback) => {
+  onMaterialsChange = callback;
+};
 
 
 // Intercepteur pour gérer les erreurs globalement
@@ -130,12 +137,18 @@ export const materialsService = {
 
   async createMaterial(materialData) {
     const response = await api.post('/api/materiels', materialData);
+
+      // Appel du callback pour rafraîchir la liste
+  if (onMaterialsChange) onMaterialsChange();
     return response.data;
     console.log('Soumission du formulaire', form);
   },
 
   async updateMaterial(id, materialData) {
     const response = await api.put(`/api/materiels/${id}`, materialData);
+
+     // Appel du callback pour rafraîchir la liste
+  if (onMaterialsChange) onMaterialsChange();
     return response.data;
   },
 

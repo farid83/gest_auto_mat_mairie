@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { materialsService, mouvementStockService } from '../../services/api';
+import { materialsService } from '../../services/api';
 
 const categories = [
   { value: 'Informatique', label: 'Informatique' },
@@ -44,7 +44,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
     } else {
       setForm(prev => ({
         ...prev,
-        quantite_disponible: prev.quantite_totale, // disponible = totale au départ
+        quantite_disponible: prev.quantite_totale,
       }));
     }
   }, [initialData, open]);
@@ -56,16 +56,12 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
     setForm(prev => ({
       ...prev,
       [name]: numericValue,
-      ...(name === 'quantite_totale'
-        ? { quantite_disponible: numericValue }   // Si on change la quantité totale, on met à jour la disponible
-        : {}),
+      ...(name === 'quantite_totale' ? { quantite_disponible: numericValue } : {}),
     }));
   };
 
-
   const handleCategoryChange = (value) => setForm(prev => ({ ...prev, categorie: value }));
   const handleEtatChange = (value) => setForm(prev => ({ ...prev, etat: value }));
-
 
   const [loading, setLoading] = useState(false);
 
@@ -81,18 +77,17 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
       toast.error('La quantité totale doit être supérieure ou égale à la quantité disponible.');
       return;
     }
-    if (loading) return; // ignore si déjà en cours
+
+    if (loading) return;
     setLoading(true);
 
     try {
       const payload = { ...form };
 
       if (initialData) {
-        // Cas de modification - le backend gère automatiquement les mouvements de stock
         await materialsService.updateMaterial(form.id, payload);
         toast.success('Matériel modifié avec succès !');
       } else {
-        // Cas de création - on vérifie si le matériel existe déjà
         const materialsList = await materialsService.getMaterials();
         const exists = materialsList.some(
           m => m.nom.toLowerCase() === form.nom.toLowerCase()
@@ -103,12 +98,10 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
           return;
         }
 
-        // Création du matériel (le backend crée automatiquement le mouvement de stock)
         await materialsService.createMaterial(payload);
         toast.success('Matériel ajouté avec succès !');
       }
 
-      // 🔹 Réinitialisation du formulaire
       setForm({
         nom: '',
         categorie: 'Divers',
@@ -117,30 +110,18 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
         etat: 'Bon',
       });
 
-      // 🔹 Fermeture du formulaire/modal
       onClose();
 
     } catch (error) {
-      console.error('Erreur lors de la création du matériel', error);
-
-      if (error.response?.status === 409) {
-        toast.error('Ce matériel existe déjà dans la base.');
-
-      } else {
-        toast.error(error.message || 'Erreur inconnue.');
-      }
-    }
-    finally {
+      console.error('Erreur lors de la sauvegarde du matériel', error);
+      toast.error(error.message || 'Erreur inconnue.');
+    } finally {
       setLoading(false);
     }
-    console.log('Soumission du formulaire', form);
   };
-
-  // Vérifie si l'utilisateur a le droit de modifier ou supprimer
 
   const isEdit = !!initialData;
   const isAdmin = user.role === 'admin';
-  const isGestionnaire = user.role === 'gestionnaire_stock';
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -155,7 +136,6 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
             label="Nom du matériel"
             placeholder="Entrez le nom du matériel"
             value={form.nom}
-
             onChange={handleChange}
             required
             disabled={isEdit && !isAdmin}
@@ -172,6 +152,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
               </SelectContent>
             </Select>
           </div>
+
           <div>
             <label className="block mb-1 font-medium">Quantité</label>
             <Input
@@ -185,6 +166,7 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
               disabled={isEdit && !isAdmin}
             />
           </div>
+
           <div>
             <label className="block mb-1 font-medium">Quantité disponible</label>
             <Input
@@ -193,9 +175,10 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
               type="number"
               min="0"
               value={form.quantite_disponible}
-              disabled // non éditable, suit la quantité totale
+              disabled
             />
           </div>
+
           <div>
             <label className="block mb-1 font-medium">État</label>
             <Select value={form.etat || "Bon"} onValueChange={handleEtatChange} disabled={isEdit && !isAdmin} required>
@@ -216,11 +199,6 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
           </DialogFooter>
         </form>
 
-        {!isEdit && isGestionnaire && (
-          <div className="mt-2 text-sm text-orange-600">
-            Attention : vérifiez les informations. Après validation, vous ne pourrez plus modifier ce matériel. Contactez l'administrateur si nécessaire.
-          </div>
-        )}
         {isEdit && !isAdmin && (
           <div className="mt-2 text-sm text-orange-600">
             Seul l'administrateur peut modifier ce matériel.
@@ -232,4 +210,3 @@ const MaterialForm = ({ open, onClose, onSave, initialData }) => {
 };
 
 export default MaterialForm;
-

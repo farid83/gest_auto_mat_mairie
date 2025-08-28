@@ -9,7 +9,7 @@ import { Input } from '../ui/input';
 import MaterialForm from './MaterialForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { materialsService } from '../../services/api';
+import { materialsService, setMaterialsChangeCallback } from '../../services/api';
 
 const stateColors = {
     Bon: 'bg-green-100 text-green-800',
@@ -40,7 +40,15 @@ const InventoryTable = () => {
 
     useEffect(() => {
         fetchInventory();
+
+          // Enregistre le callback pour refresh auto
+    setMaterialsChangeCallback(fetchInventory);
+
+    // 3️⃣ Nettoyage à la désactivation du composant
+    return () => setMaterialsChangeCallback(null);
     }, []);
+
+
 
     // 🔹 Fonction de tri par nom
     const sortByName = () => {
@@ -69,6 +77,9 @@ const InventoryTable = () => {
         
         return result;
     };
+
+   
+    
 
     // 🔹 Ajouter ou éditer un matériel
  const handleSave = async (materialData) => {

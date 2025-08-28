@@ -11,9 +11,9 @@ const MaterialsManagement = () => (
       <Tabs defaultValue="inventory" className="w-full">
         <TabsList className="flex justify-center mb-6">
           <TabsTrigger value="inventory">Inventaire</TabsTrigger>
-          <TabsTrigger value="movements">Mouvements</TabsTrigger>
+          {/* <TabsTrigger value="movements">Mouvements</TabsTrigger>
           <TabsTrigger value="ready">Prêts à livrer</TabsTrigger>
-          <TabsTrigger value="deliveries">Livraisons</TabsTrigger>
+          <TabsTrigger value="deliveries">Livraisons</TabsTrigger> */}
         </TabsList>
         <TabsContent value="inventory">
           <InventoryTable />
