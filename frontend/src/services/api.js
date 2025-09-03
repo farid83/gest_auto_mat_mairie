@@ -54,23 +54,20 @@ export const authService = {
     await this.getCsrfToken();
 
     // 2. Requête de login
-    const response = await api.post('api/login', { email, password });
+    const response = await api.post('/api/login', { email, password }); // ✅ corrige le chemin 'api/login'
     const { token, user, sessionId } = response.data;
 
-    // 3. Stockage local (clé + valeur !)
-    localStorage.setItem('token', token); // 🔹 2 arguments obligatoires
-    if (sessionId) {
-      localStorage.setItem('sessionId', sessionId);
-    }
-
-    localStorage.setItem('user', JSON.stringify(user)); // 🔹 objet => JSON.stringify
+    // 3. Stockage local (clé + valeur)
+    if (token) localStorage.setItem('token', token); // 🔹 ne stocke que si token présent
+    if (sessionId) localStorage.setItem('sessionId', sessionId);
+    if (user) localStorage.setItem('user', JSON.stringify(user)); // 🔹 objet => JSON.stringify
 
     // 4. Retourner les infos pour usage immédiat
     return { token, user };
   },
 
   async logout() {
-    // Si tu veux révoquer côté serveur, adapte l’URL/méthode
+    // Révoquer côté serveur si besoin
     try {
       await api.post('/api/auth/logout');
     } catch (err) {
@@ -79,20 +76,22 @@ export const authService = {
     // Nettoyage local
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('sessionId');
   },
 
-async getUser() {
-  try {
-    const { data } = await api.get('/api/auth/user');
-    return data;
-  } catch (err) {
-    if (err.status === 401) {
-      return null; // pas connecté
+  async getUser() {
+    try {
+      const { data } = await api.get('/api/auth/user');
+      return data;
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        return null; // pas connecté
+      }
+      throw err;
     }
-    throw err;
   }
-}
 };
+
 
 
 // Service utilisateurs

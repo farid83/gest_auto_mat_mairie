@@ -53,7 +53,7 @@ const Login = () => {
     { email: 'marie.koffi@example.com', role: 'CM', password: 'password123' },
     { email: 'pierre.akoka@example.com', role: 'Secretaire Executif', password: 'password123' },
     { email: 'fatou.tomiyo@example.com', role: 'DAAF', password: 'password123' },
-     { email: 'ahmed.soumanou@adjarra.bj', role: 'Secrétaire Exécutif', password: 'password' },
+     { email: 'ahmed.soumanou@example.com', role: 'Collaborateur DSI', password: 'password123' },
     { email: 'admin@example.com', role: 'admin', password: 'secret' }
   ];
 

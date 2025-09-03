@@ -114,4 +114,26 @@ Route::post('/materiels/{materiel}/entree', [MaterielController::class, 'entrerS
 //     Route::get('/mouvements-stock', [MouvementController::class, 'index']);
 // });
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/demandes', [DemandeController::class, 'store']);
+});
 
+Route::middleware('auth:sanctum')->get('/demande_materiels', [DemandeMaterielController::class, 'index']);
+
+// Routes pour les notifications
+Route::middleware('auth:sanctum')->get('/notifications', function (Request $request) {
+    return $request->user()->notifications()->latest()->get();
+});
+
+Route::middleware('auth:sanctum')->get('/notifications/unread', function (Request $request) {
+    return $request->user()->unreadNotifications()->latest()->get();
+});
+
+Route::middleware('auth:sanctum')->post('/notifications/{notification}/mark-as-read', function (Request $request, $notificationId) {
+    $notification = $request->user()->notifications()->find($notificationId);
+    if ($notification) {
+        $notification->markAsRead();
+        return response()->json(['message' => 'Notification marquée comme lue']);
+    }
+    return response()->json(['message' => 'Notification non trouvée'], 404);
+});

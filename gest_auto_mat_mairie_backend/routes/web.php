@@ -34,3 +34,5 @@ Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show'])
 //     return response()->noContent(); // 204
 // })->middleware('auth');
 
+
+

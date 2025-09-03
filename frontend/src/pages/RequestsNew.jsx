@@ -7,6 +7,15 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { useMaterials, useCreateRequest } from '../hooks/useApi';
+import { ToastContainer, toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+
+const API_URL = 'http://127.0.0.1:8000/api/demandes';
+
+
+
+
+
 
 const RequestsNew = () => {
   const navigate = useNavigate();
@@ -19,7 +28,7 @@ const RequestsNew = () => {
   const [success, setSuccess] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState({});
   const materialInputRefs = useRef([]);
 
   const handleChange = (idx, e) => {
@@ -52,33 +61,30 @@ const RequestsNew = () => {
   };
 
   // Fonction pour gérer le changement de valeur dans le champ matériel
-  const handleMaterialChange = (idx, value) => {
-    setMaterials(prev =>
-      prev.map((item, i) =>
-        i === idx ? { ...item, material: value } : item
-      )
-    );
-    
-    // Mettre à jour les suggestions
-    const newSuggestions = getSuggestions(value);
-    setSuggestions(newSuggestions);
-    setShowSuggestions(newSuggestions.length > 0);
-    setActiveSuggestionIndex(-1);
-    
-    setError('');
-    setSuccess('');
-  };
+const handleMaterialChange = (idx, value) => {
+  setMaterials((prev) =>
+    prev.map((item, i) => (i === idx ? { ...item, material: value } : item))
+  );
+
+// Mettre à jour les suggestions
+  const newSuggestions = getSuggestions(value);
+  setSuggestions((prev) => ({ ...prev, [idx]: newSuggestions }));
+  setShowSuggestions((prev) => ({ ...prev, [idx]: newSuggestions.length > 0 }));
+  setActiveSuggestionIndex((prev) => ({ ...prev, [idx]: -1 }));
+};
+
 
   // Fonction pour gérer la sélection d'une suggestion
-  const handleSuggestionClick = (idx, suggestion) => {
-    setMaterials(prev =>
-      prev.map((item, i) =>
-        i === idx ? { ...item, material: suggestion.nom } : item
-      )
-    );
-    setShowSuggestions(false);
-    setActiveSuggestionIndex(-1);
-  };
+const handleSuggestionClick = (idx, suggestion) => {
+  setMaterials((prev) =>
+    prev.map((item, i) =>
+      i === idx ? { ...item, material: suggestion.nom } : item
+    )
+  );
+  setShowSuggestions((prev) => ({ ...prev, [idx]: false }));
+  setActiveSuggestionIndex((prev) => ({ ...prev, [idx]: -1 }));
+};
+
 
   // Fonction pour gérer les événements clavier
   const handleKeyDown = (idx, e) => {
@@ -103,28 +109,75 @@ const RequestsNew = () => {
 
   const { mutate: createRequest, isLoading: isCreating } = useCreateRequest();
   
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-    setSuccess('');
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      createRequest({ materials }, {
-        onSuccess: (data) => {
-          setSuccess('Demande envoyée avec succès !');
-          setTimeout(() => navigate('/dashboard'), 1500);
-        },
-        onError: (error) => {
-          setError(error.message || 'Erreur lors de la demande');
-        }
-      });
-    } catch (err) {
-      setError('Erreur réseau');
-    } finally {
-      setIsSubmitting(false);
+  // Vérification basique des quantités
+  for (let item of materials) {
+    if (item.quantity <= 0) {
+      toast.error('La quantité doit être supérieure à 0');
+      return;
     }
+  }
+
+  // Récupération du token depuis le localStorage
+  const user = JSON.parse(localStorage.getItem('user'));
+  const token = localStorage.getItem('token'); // pas user?.token
+
+
+  console.log('User stocké :', user);
+console.log('Token :', token);
+
+
+  if (!token) {
+    toast.error('Vous devez être connecté');
+    return;
+  }
+
+  // Construction du payload
+  const payload = {
+    materiels: materials.map(item => {
+      const materiel = materialsData.find(m => m.nom === item.material);
+      return {
+        materiel_id: materiel?.id, // Ajout de l'ID pour Laravel
+        quantite: parseInt(item.quantity, 10),
+        justification: item.justification
+      };
+    })
   };
+
+  
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/demandes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization : `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log('Erreur API :', errorData);
+      toast.error(errorData.message || 'Erreur lors de la création de la demande');
+      return;
+    }
+
+    const data = await response.json();
+    console.log('Demande créée avec succès :', data);
+    toast.success('Demande créée avec succès !');
+
+    // Réinitialiser le formulaire
+    setMaterials([{ material: '', quantity: '', justification: '' }]);
+  } catch (error) {
+    console.error('Erreur fetch :', error);
+    toast.error('Erreur réseau ou serveur');
+  }
+};
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
@@ -190,13 +243,13 @@ const RequestsNew = () => {
                         required
                         className="w-full h-11"
                       />
-                      {showSuggestions && suggestions.length > 0 && (
+                      {showSuggestions[idx] && suggestions[idx]?.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto">
-                          {suggestions.map((suggestion, suggestionIdx) => (
+                          {suggestions[idx].map((suggestion, suggestionIdx) => (
                             <div
                               key={suggestion.id}
                               className={`px-4 py-2 cursor-pointer ${
-                                activeSuggestionIndex === suggestionIdx
+                                activeSuggestionIndex[idx] === suggestionIdx
                                   ? 'bg-blue-100 dark:bg-blue-900'
                                   : 'hover:bg-slate-100 dark:hover:bg-slate-700'
                               }`}
@@ -270,6 +323,7 @@ const RequestsNew = () => {
               </Button>
             </CardFooter>
           </form>
+
         </Card>
         <div className="text-center text-sm text-muted-foreground">
           <Button variant="link" onClick={() => navigate('/dashboard')}>
@@ -280,8 +334,10 @@ const RequestsNew = () => {
           © 2024 Mairie d'Adjarra - Tous droits réservés
         </div>
       </div>
+      <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
     </div>
   );
 };
+
 
 export default RequestsNew;

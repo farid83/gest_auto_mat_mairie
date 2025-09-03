@@ -31,7 +31,9 @@ const Dashboard = () => {
     materials_total: 0,
     materials_low_stock: 0,
     pending_validations: 0,
-    notifications_unread: 0
+    notifications_unread: 0,
+    user_requests_total: 0,
+    user_requests_pending: 0
   };
 
   const currentStats = stats || defaultStats;
@@ -71,14 +73,39 @@ const Dashboard = () => {
       });
     }
 
+    // Ajouter les statistiques des demandes de l'utilisateur
     roleStats.push(
       {
-        title: "Demandes totales",
-        value: currentStats.requests_total,
+        title: "Mes demandes totales",
+        value: currentStats.user_requests_total,
         icon: FileText,
-        description: "Toutes les demandes",
-        color: "green"
+        description: "Mes demandes",
+        color: "indigo"
       },
+      {
+        title: "Mes demandes en attente",
+        value: currentStats.user_requests_pending,
+        icon: Clock,
+        description: "En attente de validation",
+        color: "orange",
+        urgent: currentStats.user_requests_pending > 0
+      }
+    );
+
+    // Ajouter les statistiques générales pour les rôles appropriés
+    if (hasAnyRole(['admin', 'gestionnaire_stock'])) {
+      roleStats.push(
+        {
+          title: "Demandes totales",
+          value: currentStats.requests_total,
+          icon: FileText,
+          description: "Toutes les demandes",
+          color: "green"
+        }
+      );
+    }
+
+    roleStats.push(
       {
         title: "Notifications",
         value: currentStats.notifications_unread,
@@ -160,6 +187,7 @@ const Dashboard = () => {
                   stat.color === 'green' ? 'bg-green-100 dark:bg-green-900' :
                   stat.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900' :
                   stat.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900' :
+                  stat.color === 'indigo' ? 'bg-indigo-100 dark:bg-indigo-900' :
                   'bg-red-100 dark:bg-red-900'
                 }`}>
                   <Icon className={`w-4 h-4 ${
@@ -167,6 +195,7 @@ const Dashboard = () => {
                     stat.color === 'green' ? 'text-green-600 dark:text-green-400' :
                     stat.color === 'orange' ? 'text-orange-600 dark:text-orange-400' :
                     stat.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
+                    stat.color === 'indigo' ? 'text-indigo-600 dark:text-indigo-400' :
                     'text-red-600 dark:text-red-400'
                   }`} />
                 </div>

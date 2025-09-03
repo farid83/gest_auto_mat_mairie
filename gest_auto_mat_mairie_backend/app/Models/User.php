@@ -55,6 +55,12 @@ public function getRoleNameAttribute()
             'password' => 'hashed',
         ];
     }
+
+    
+public function service()
+{
+    return $this->belongsTo(Service::class);
+}
   
     // app/Models/User.php
 
