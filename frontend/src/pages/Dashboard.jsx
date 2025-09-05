@@ -211,73 +211,8 @@ const Dashboard = () => {
         })}
       </div>
 
-      {/* Section principale avec données mockées pour le moment */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Message temporaire */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckSquare className="w-5 h-5 mr-2" />
-              Intégration API en cours
-            </CardTitle>
-            <CardDescription>
-              Système connecté à l'API Laravel (simulation)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">API Backend</p>
-                    <p className="text-sm text-green-600 dark:text-green-300">Connecté et opérationnel</p>
-                  </div>
-                </div>
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  Actif
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div>
-                    <p className="font-medium text-blue-800 dark:text-blue-200">Authentification</p>
-                    <p className="text-sm text-blue-600 dark:text-blue-300">Laravel Sanctum simulé</p>
-                  </div>
-                </div>
-                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  Fonctionnel
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                  <div>
-                    <p className="font-medium text-orange-800 dark:text-orange-200">Données complètes</p>
-                    <p className="text-sm text-orange-600 dark:text-orange-300">En cours de migration des mocks</p>
-                  </div>
-                </div>
-                <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                  En cours
-                </Badge>
-              </div>
-
-              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium mb-2">Prochaines étapes :</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Connexion à votre API Laravel existante</li>
-                  <li>• Migration complète des données</li>
-                  <li>• Implémentation des pages restantes</li>
-                  <li>• Tests d'intégration complets</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Autres sections du dashboard peuvent être ajoutées ici */}
+      
     </div>
   );
 };

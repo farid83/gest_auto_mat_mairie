@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { useAuth } from '../../contexts/AuthContext';
 import { mockNotifications, roleLabels } from '../../services/mock';
 import { Toaster } from 'sonner';
+import NotificationBell from '../common/NotificationBell';
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -186,16 +187,7 @@ console.log("LocalStorage ->",
               </Button>
 
               {/* Notifications */}
-              <div className="relative">
-                <Button variant="ghost" size="icon" className="w-9 h-9">
-                  <Bell className="w-4 h-4" />
-                  {unreadNotifications.length > 0 && (
-                    <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs bg-red-500">
-                      {unreadNotifications.length}
-                    </Badge>
-                  )}
-                </Button>
-              </div>
+              <NotificationBell />
 
               {/* User Menu */}
               <DropdownMenu>

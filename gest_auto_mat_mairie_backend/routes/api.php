@@ -121,19 +121,49 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/demande_materiels', [DemandeMaterielController::class, 'index']);
 
 // Routes pour les notifications
-Route::middleware('auth:sanctum')->get('/notifications', function (Request $request) {
-    return $request->user()->notifications()->latest()->get();
-});
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notifications', function (Request $request) {
+        return $request->user()->notifications()->latest()->get();
+    });
 
-Route::middleware('auth:sanctum')->get('/notifications/unread', function (Request $request) {
-    return $request->user()->unreadNotifications()->latest()->get();
-});
+    Route::get('/notifications/unread', function (Request $request) {
+        return $request->user()->unreadNotifications()->latest()->get();
+    });
 
-Route::middleware('auth:sanctum')->post('/notifications/{notification}/mark-as-read', function (Request $request, $notificationId) {
-    $notification = $request->user()->notifications()->find($notificationId);
-    if ($notification) {
-        $notification->markAsRead();
+   Route::post('/notifications/{notification}/mark-as-read', function (Request $request, $notification) {
+    $notif = $request->user()->notifications()->find($notification);
+    if ($notif) {
+        $notif->markAsRead();
         return response()->json(['message' => 'Notification marquée comme lue']);
     }
     return response()->json(['message' => 'Notification non trouvée'], 404);
 });
+
+
+    Route::post('/notifications/mark-all-read', function (Request $request) {
+        $request->user()->notifications()->update(['read_at' => now()]);
+        return response()->json(['message' => 'Toutes les notifications marquées comme lues']);
+    });
+
+
+
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Supprimer une notification individuelle
+    Route::delete('/notifications/{notification}', function (Request $request, $notification) {
+        $notif = $request->user()->notifications()->find($notification);
+        if ($notif) {
+            $notif->delete();
+            return response()->json(['message' => 'Notification supprimée']);
+        }
+        return response()->json(['message' => 'Notification non trouvée'], 404);
+    });
+
+    // Supprimer toutes les notifications
+    Route::delete('/notifications', function (Request $request) {
+        $request->user()->notifications()->delete();
+        return response()->json(['message' => 'Toutes les notifications supprimées']);
+    });
+});
+

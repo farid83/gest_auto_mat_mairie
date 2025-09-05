@@ -13,7 +13,8 @@ import {
   validationsService,
   deliveriesService,
   notificationsService,
-  dashboardService
+  dashboardService,
+
 } from '../services/api';
 
 // Keys pour le cache React Query
@@ -28,7 +29,8 @@ export const queryKeys = {
   validations: ['validations'],
   deliveries: ['deliveries'],
   notifications: ['notifications'],
-  dashboardStats: ['dashboard', 'stats']
+  dashboardStats: ['dashboard', 'stats'],
+  unreadNotifications: ['unreadNotifications'],
 };
 
 // Hooks pour les utilisateurs
@@ -193,34 +195,82 @@ export const useConfirmReception = () => {
 };
 
 // Hooks pour les notifications
-export const useNotifications = (params = { read: false }) => {
+// 📌 Récupérer toutes les notifications
+export const useNotifications = (params = {}) => {
   return useQuery({
     queryKey: [...queryKeys.notifications, params],
     queryFn: () => notificationsService.getNotifications(params),
-    staleTime: 30 * 1000, // 30 secondes
-    refetchInterval: 2 * 60 * 1000, // Auto-refetch toutes les 2 minutes
+    staleTime: 30 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   });
 };
 
+// 📌 Récupérer seulement les notifications non lues
+export const useUnreadNotifications = () => {
+  return useQuery({
+    queryKey: [...queryKeys.notifications, { unread: true }],
+    queryFn: () => notificationsService.getNotifications({ unread: true }),
+    staleTime: 30 * 1000,
+    refetchInterval: 1 * 60 * 1000,
+  });
+};
+
+// 📌 Marquer une notification comme lue
 export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: notificationsService.markAsRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-    }
+    mutationFn: (id) => notificationsService.markAsRead(id),
+    onSuccess: (data, id) => {
+      queryClient.setQueryData(queryKeys.notifications, (old = []) =>
+        old.map((notif) =>
+          notif.id === id ? { ...notif, read_at: new Date().toISOString() } : notif
+        )
+      );
+    },
   });
 };
 
+// 📌 Marquer toutes les notifications comme lues
 export const useMarkAllNotificationsAsRead = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: notificationsService.markAllAsRead,
+    mutationFn: () => notificationsService.markAllAsRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-    }
+      queryClient.setQueryData(queryKeys.notifications, (old = []) =>
+        old.map((notif) => ({ ...notif, read_at: new Date().toISOString() }))
+      );
+    },
   });
 };
+
+// 📌 Supprimer une notification
+export const useDeleteNotification = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => notificationsService.deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unreadNotifications });
+    },
+  });
+};
+
+// 📌 Supprimer toutes les notifications
+export const useClearAllNotifications = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationsService.clearAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unreadNotifications });
+    },
+  });
+};
+
 
 // Hook pour les statistiques du dashboard
 export const useDashboardStats = () => {

@@ -212,7 +212,7 @@ const Login = () => {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          © 2024 Mairie d'Adjarra - Tous droits réservés
+          © 2025 Mairie d'Adjarra - Tous droits réservés
         </div>
       </div>
     </div>

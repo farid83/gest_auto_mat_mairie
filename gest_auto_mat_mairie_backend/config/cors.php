@@ -2,7 +2,7 @@
 
 return [
 
-    'paths' => ['api/*', 'auth/*', 'sanctum/csrf-cookie', 'login', 'register', 'logout', 'dashboard/*', 'users/*', 'materiels/*', 'directions/*', 'demandes/*', 'demande-materiels/*', 'livraisons/*', 'mouvement-stocks/*'],
+    'paths' => ['api/*', 'auth/*', 'sanctum/csrf-cookie', 'login', 'register', 'logout', 'dashboard/*', 'users/*', 'materiels/*', 'directions/*', 'demandes/*', 'demande-materiels/*', 'livraisons/*', 'mouvement-stocks/*', 'notifications*'],
 
     'allowed_methods' => ['*'],
 
