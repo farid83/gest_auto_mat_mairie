@@ -60,7 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::apiResource('materiels', MaterielController::class);
     Route::apiResource('directions', DirectionController::class);
     Route::apiResource('demandes', DemandeController::class);
-    Route::apiResource('demande-materiels', DemandeMaterielController::class);
+    // Route::apiResource('demande-materiels', DemandeMaterielController::class);
     Route::apiResource('livraisons', LivraisonController::class);
     Route::apiResource('mouvements-stock', MouvementStockController::class);
 
@@ -119,11 +119,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/demandes', [DemandeController::class, 'store']);
 });
 
-Route::middleware('auth:sanctum')->get('/demande_materiels', [DemandeMaterielController::class, 'index']);
-Route::middleware('auth:sanctum')->get('/demande_materiels/validation', [DemandeMaterielController::class, 'getRequestsForValidation']);
-Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/validate', [DemandeMaterielController::class, 'validateRequest']);
-Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/validate', [DemandeMaterielController::class, 'validateMateriel']);
-Route::middleware('auth:sanctum')->get('/demande_materiels/user/{userId}', [DemandeMaterielController::class, 'getRequestsForStockManager']);
+// Route::middleware('auth:sanctum')->get('/demande_materiels', [DemandeMaterielController::class, 'index']);
+// Route::middleware('auth:sanctum')->get('/demande_materiels/validation', [DemandeMaterielController::class, 'getRequestsForValidation']);
+// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/validate', [DemandeMaterielController::class, 'validateRequest']);
+// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/validate', [DemandeMaterielController::class, 'validateMateriel']);
+// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/daaf-validate', [DemandeMaterielController::class, 'validateMaterielByDaaf']);
+// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/secretaire-validate', [DemandeMaterielController::class, 'validateMaterielBySecretaire']);
+// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/stock-action', [DemandeMaterielController::class, 'validateRequest']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/demande_materiels', [DemandeMaterielController::class, 'index']);
+    Route::get('/demande-materiels/validation', [DemandeMaterielController::class, 'getRequestsForValidation']);
+    Route::post('/demande-materiels/{id}/validate', [DemandeMaterielController::class, 'validateRequest']);
+    Route::post('/demande-materiels/{id}/materiels/{materielId}/validate', [DemandeMaterielController::class, 'validateMateriel']);
+    Route::post('/demande-materiels/{id}/materiels/{materielId}/daaf-validate', [DemandeMaterielController::class, 'validateMaterielByDaaf']);
+    Route::post('/demande-materiels/{id}/materiels/{materielId}/secretaire-validate', [DemandeMaterielController::class, 'validateMaterielBySecretaire']);
+    Route::post('/demande-materiels/{id}/stock-action', [DemandeMaterielController::class, 'validateRequest']);
+});
+
+
 
 // Routes pour les notifications
 Route::middleware('auth:sanctum')->group(function () {
@@ -172,4 +187,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-
+// Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function () {
+//     Route::get('/directeur-only', function () {
+//         return response()->json(['message' => 'Accès autorisé au directeur uniquement']);
+//     });
+// });      

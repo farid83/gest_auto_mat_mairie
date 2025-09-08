@@ -7,95 +7,97 @@ use Illuminate\Http\Request;
 use App\Models\DemandeMateriel;
 use App\Models\Demande;
 use App\Models\User;
-
-
+use Illuminate\Support\Facades\Schema;
 
 class DemandeMaterielController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Liste des demandes de l'utilisateur connecté
      */
     public function index(Request $request)
     {
-        // Récupérer uniquement les demandes de l'utilisateur connecté
         $user = $request->user();
-        if (!$user) {
-            return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-        }
+        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
         $demandes = Demande::with('materiels.materiel')
             ->where('user_id', $user->id)
-            ->get();
-
-        // Reformater pour le frontend
-        $demandes = $demandes->map(function ($demande) {
-            return [
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn($demande) => [
                 'id' => $demande->id,
                 'user_id' => $demande->user_id,
                 'created_at' => $demande->created_at,
                 'status' => $demande->status,
-                'materials' => $demande->materiels->map(function ($dm) {
-                    return [
-                        'id' => $dm->id,
-                        'name' => $dm->materiel->nom ?? 'Nom indisponible',
-                        'quantity' => $dm->quantite_demandee,
-                        'justification' => $dm->justification ?? 'Aucune justification',
-                    ];
-                }),
-            ];
-        });
-
-        return response()->json([
-            'message' => 'Liste des demandes',
-            'demandes' => $demandes
-        ]);
-    }
-
-    /**
-     * Récupérer les demandes à valider par le directeur
-     */
-   public function getRequestsForValidation(Request $request)
-{
-    $user = $request->user();
-    if (!$user) {
-        return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-    }
-
-    $demandes = collect(); // initialisation
-
-    if ($user->role === 'directeur') {
-        $demandes = Demande::with(['materiels.materiel', 'user'])
-            ->where('directeur_id', $user->id)
-            ->where('status', 'en_attente')
-            ->orderBy('created_at', 'desc')
-            ->get();
-    } elseif ($user->role === 'gestionnaire_stock') {
-        $demandes = Demande::with(['materiels.materiel', 'user'])
-            ->where('gestionnaire_id', $user->id)
-            ->where('status', 'en_attente_stock')
-            ->orderBy('created_at', 'desc')
-            ->get();
-    } else {
-        return response()->json(['message' => 'Accès non autorisé'], 403);
-    }
-
-    // Reformater pour le frontend
-    $demandes = $demandes->map(function ($demande) {
-        return [
-            'id' => $demande->id,
-            'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
-            'created_at' => $demande->created_at,
-            'status' => $demande->status,
-            'materials' => $demande->materiels->map(function ($dm) {
-                return [
+                'materials' => $demande->materiels->map(fn($dm) => [
                     'id' => $dm->id,
                     'name' => $dm->materiel->nom ?? 'Nom indisponible',
                     'quantity' => $dm->quantite_demandee,
                     'justification' => $dm->justification ?? 'Aucune justification',
+                    'status' => $dm->quantite_validee !== null
+                        ? ($dm->quantite_validee > 0 ? 'validee' : 'rejetee')
+                        : 'en_attente'
+                ])
+            ]);
+
+        return response()->json(['message' => 'Liste des demandes', 'demandes' => $demandes]);
+    }
+
+    /**
+     * Récupérer les demandes à valider selon le rôle
+     */
+    /**
+     * Récupérer les demandes à valider selon le rôle
+     */
+public function getRequestsForValidation(Request $request)
+{
+    $user = $request->user();
+    if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+
+    $roleStatusMap = [
+        'directeur' => ['status' => 'en_attente', 'field' => 'directeur_id'],
+        'gestionnaire_stock' => ['status' => 'en_attente_stock', 'field' => null],
+        'daaf' => ['status' => 'en_attente_daaf', 'field' => 'daaf_id'],
+        'secretaire_executif' => ['status' => 'en_attente_secretaire', 'field' => 'secretaire_id'],
+    ];
+
+    if (!isset($roleStatusMap[$user->role])) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+
+    $status = $roleStatusMap[$user->role]['status'];
+    $roleField = $roleStatusMap[$user->role]['field'];
+
+    try {
+        $demandes = Demande::with(['materiels.materiel', 'user'])
+            ->when($roleField, function($query) use ($roleField, $user) {
+                $query->where($roleField, $user->id);
+            })
+            ->where('status', $status)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($demande) {
+                return [
+                    'id' => $demande->id,
+                    'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
+                    'created_at' => $demande->created_at,
+                    'status' => $demande->status,
+                    'materials' => $demande->materiels->map(function($dm) {
+                        return [
+                            'id' => $dm->id,
+                            'name' => $dm->materiel->nom ?? 'Nom indisponible',
+                            'quantity' => $dm->quantite_demandee ?? 0,
+                            'justification' => $dm->justification ?? 'Aucune justification',
+                            'status' => isset($dm->quantite_validee)
+                                ? ($dm->quantite_validee > 0 ? 'validee' : 'rejetee')
+                                : 'en_attente'
+                        ];
+                    })
                 ];
-            }),
-        ];
-    });
+            });
+    } catch (\Exception $e) {
+        \Log::error('Erreur getRequestsForValidation: ' . $e->getMessage());
+        return response()->json(['message' => 'Erreur serveur lors de la récupération des demandes'], 500);
+    }
 
     return response()->json([
         'message' => 'Liste des demandes à valider',
@@ -103,212 +105,162 @@ class DemandeMaterielController extends Controller
     ]);
 }
 
-
-
-/**
- * Récupérer les demandes à traiter par le gestionnaire de stock
- */
-public function getRequestsForStock(Request $request)
-{
-    $user = $request->user();
-    if (!$user) {
-        return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-    }
-
-    // Vérifier que l'utilisateur est un gestionnaire de stock
-    if ($user->role !== 'gestionnaire_stock') {
-        return response()->json(['message' => 'Accès non autorisé - Seuls les gestionnaires de stock peuvent voir ces demandes'], 403);
-    }
-
-    $demandes = Demande::with(['materiels.materiel', 'user'])
-        ->where('gestionnaire_id', $user->id)
-        ->where('status', 'en_attente_stock')
-        ->orderBy('created_at', 'desc')
-        ->get();
-
-    $demandes = $demandes->map(function($demande) {
-        return [
-            'id' => $demande->id,
-            'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
-            'created_at' => $demande->created_at,
-            'status' => $demande->status,
-            'materials' => $demande->materiels->map(function($dm) {
-                return [
-                    'id' => $dm->id,
-                    'name' => $dm->materiel->nom ?? 'Nom indisponible',
-                    'quantity' => $dm->quantite_demandee,
-                    'justification' => $dm->justification ?? 'Aucune justification',
-                ];
-            }),
-        ];
-    });
-
-    return response()->json([
-        'message' => 'Liste des demandes à traiter par le gestionnaire de stock',
-        'demandes' => $demandes
-    ]);
-}
-
     /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Valider une demande par le directeur hiérarchique
+     * Validation globale d'une demande
      */
 public function validateRequest(Request $request, $id)
 {
     $user = $request->user();
-    if (!$user) {
-        return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-    }
-
-    if ($user->role !== 'directeur') {
-        return response()->json(['message' => 'Accès non autorisé - Seuls les directeurs peuvent valider les demandes'], 403);
-    }
+    if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
     $demande = Demande::with('materiels.materiel')->find($id);
-    if (!$demande) {
-        return response()->json(['message' => 'Demande non trouvée'], 404);
-    }
-
-    if ($demande->directeur_id !== $user->id) {
-        return response()->json(['message' => 'Vous ne pouvez valider que les demandes de votre service'], 403);
-    }
+    if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
 
     $validated = $request->validate([
         'status' => 'required|in:validee,rejetee',
         'commentaire' => 'nullable|string|max:500',
     ]);
 
-    $demande->status = $validated['status'];
-    $demande->commentaire = $validated['commentaire'];
-    $demande->date_validation_directeur = now();
+    $role = $user->role;
+
+    // Sauvegarde commentaire et date pour ce rôle
+    $commentField = 'commentaire_' . $role;
+    if (Schema::hasColumn('demandes', $commentField)) {
+        $demande->$commentField = $validated['commentaire'] ?? null;
+    }
+
+    $dateField = 'date_validation_' . $role;
+    if (Schema::hasColumn('demandes', $dateField)) {
+        $demande->$dateField = now();
+    }
 
     if ($validated['status'] === 'validee') {
-        // Affecter au gestionnaire stock par défaut
-        $gestionnaire = \App\Models\User::where('role', 'gestionnaire_stock')->first();
-
-        if ($gestionnaire) {
-            $demande->status = 'en_attente_stock';
-            $demande->gestionnaire_id = $gestionnaire->id;
-        } else {
-            return response()->json([
-                'message' => 'Aucun gestionnaire de stock défini dans le système'
-            ], 500);
+        // Valider tous les matériels
+        foreach ($demande->materiels as $dm) {
+            $dm->quantite_validee = $dm->quantite_demandee;
+            $dm->save();
         }
 
-        foreach ($demande->materiels as $demandeMateriel) {
-            $demandeMateriel->quantite_validee = $demandeMateriel->quantite_demandee;
-            $demandeMateriel->save();
+        // Déterminer le rôle suivant et assigner la demande
+        switch ($role) {
+            case 'directeur':
+                $nextRole = 'gestionnaire_stock';
+                $demande->status = 'en_attente_stock';
+                $nextUser = User::where('role', $nextRole)->first();
+                if ($nextUser && Schema::hasColumn('demandes', $nextRole . '_id')) {
+                    $demande->{$nextRole . '_id'} = $nextUser->id;
+                }
+                break;
+
+            case 'gestionnaire_stock':
+                $nextRole = 'daaf';
+                $demande->status = 'en_attente_daaf';
+                $nextUser = User::where('role', $nextRole)->first();
+                if ($nextUser && Schema::hasColumn('demandes', $nextRole . '_id')) {
+                    $demande->{$nextRole . '_id'} = $nextUser->id;
+                }
+                break;
+
+            case 'daaf':
+                $nextRole = 'secretaire_executif';
+                $demande->status = 'en_attente_secretaire';
+                $nextUser = User::where('role', $nextRole)->first();
+                if ($nextUser && Schema::hasColumn('demandes', 'secretaire_id')) {
+                    $demande->secretaire_id = $nextUser->id;
+                }
+                break;
+
+            case 'secretaire_executif':
+                $demande->status = 'validee_finale';
+                break;
         }
+    } else {
+        $demande->status = 'rejetee';
     }
 
     $demande->save();
 
     return response()->json([
-        'message' => 'Demande validée et envoyée au gestionnaire stock',
-        'demande' => $demande->load(['materiels.materiel', 'gestionnaire'])
+        'message' => "Demande traitée par {$role}",
+        'demande' => $demande->load('materiels.materiel')
     ]);
 }
 
+
     /**
-     * Valider un matériel spécifique d'une demande
+     * Validation par matériel spécifique
      */
     public function validateMateriel(Request $request, $id, $materielId)
     {
+        return $this->validateMaterielByRole($request, $id, $materielId, $request->user()->role);
+    }
+
+    public function validateMaterielByDaaf(Request $request, $id, $materielId)
+    {
+        return $this->validateMaterielByRole($request, $id, $materielId, 'daaf');
+    }
+
+    public function validateMaterielBySecretaire(Request $request, $id, $materielId)
+    {
+        return $this->validateMaterielByRole($request, $id, $materielId, 'secretaire_executif');
+    }
+
+    /**
+     * Validation par matériel selon rôle
+     */
+    private function validateMaterielByRole(Request $request, $demandeId, $materielId, $role)
+    {
         $user = $request->user();
-        if (!$user) {
-            return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-        }
-
-        // Vérifier que l'utilisateur est un directeur
-        if ($user->role !== 'directeur') {
-            return response()->json(['message' => 'Accès non autorisé - Seuls les directeurs peuvent valider les matériels'], 403);
-        }
-
-        try {
-            $demandeMateriel = DemandeMateriel::where('demande_id', $id)
-                ->where('materiel_id', $materielId)
-                ->firstOrFail();
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Matériel non trouvé dans cette demande'], 404);
-        }
-
-        // Vérifier que la demande appartient au service du directeur
-        $demande = $demandeMateriel->demande;
-        if ($demande->directeur_id !== $user->id) {
-            return response()->json(['message' => 'Vous ne pouvez valider que les demandes de votre service'], 403);
-        }
+        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
         $validated = $request->validate([
             'status' => 'required|in:validee,rejetee',
             'commentaire' => 'nullable|string|max:500',
+            'quantite_demandee' => 'nullable|integer|min:1'
         ]);
 
-        $status = $validated['status'];
+        $demande = Demande::with('materiels.materiel')->find($demandeId);
+        if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
 
-        if ($status === 'validee') {
-            $demandeMateriel->quantite_validee = $demandeMateriel->quantite_demandee;
-        } elseif ($status === 'rejetee') {
-            $demandeMateriel->quantite_validee = 0;
-        }
+        $dm = DemandeMateriel::firstOrCreate(
+            ['demande_id' => $demandeId, 'materiel_id' => $materielId],
+            [
+                'quantite_demandee' => $validated['quantite_demandee'] ?? 1,
+                'justification' => 'Ajout automatique pour validation'
+            ]
+        );
 
-        $demandeMateriel->commentaire = $validated['commentaire'];
-        $demandeMateriel->date_validation_directeur = now();
-        $demandeMateriel->save();
+        $dm->quantite_validee = $validated['status'] === 'validee' ? $dm->quantite_demandee : 0;
+        $dm->commentaire = $validated['commentaire'] ?? null;
+        $dm->{'date_validation_' . $role} = now();
+        $dm->save();
 
-        // Vérifier le statut global de la demande
-        $allValidated = $demande->demandeMateriels->every(fn($dm) => $dm->quantite_validee !== null && $dm->quantite_validee > 0);
-        $allRejected = $demande->demandeMateriels->every(fn($dm) => $dm->quantite_validee === 0);
-        $anyValidated = $demande->demandeMateriels->contains(fn($dm) => $dm->quantite_validee > 0);
-        $anyRejected = $demande->demandeMateriels->contains(fn($dm) => $dm->quantite_validee === 0);
+        // Vérifier l'état global
+        $demande->load('materiels');
+        $allValidated = $demande->materiels->every(fn($m) => $m->quantite_validee > 0);
+        $allRejected = $demande->materiels->every(fn($m) => $m->quantite_validee === 0);
+
+        $nextStatusMap = [
+            'directeur' => 'en_attente_stock',
+            'gestionnaire_stock' => 'en_attente_daaf',
+            'daaf' => 'en_attente_secretaire',
+            'secretaire_executif' => 'validee_finale'
+        ];
 
         if ($allValidated) {
-            $demande->status = 'validee';
+            $demande->status = $nextStatusMap[$role] ?? 'validee';
         } elseif ($allRejected) {
             $demande->status = 'rejetee';
-        } elseif ($anyValidated || $anyRejected) {
-            $demande->status = 'en_attente'; // statut intermédiaire
         } else {
-            $demande->status = 'en_attente'; // aucun matériel encore validé/rejeté
+            $demande->status = 'en_attente_' . $role;
         }
 
         $demande->save();
 
         return response()->json([
             'status' => 'success',
-            'message' => "Matériel {$status} avec succès",
-            'demande' => $demande->load('demandeMateriels.materiel')
+            'message' => "Matériel {$validated['status']} par {$role}",
+            'demande' => $demande->load('materiels.materiel')
         ]);
-    }
-
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

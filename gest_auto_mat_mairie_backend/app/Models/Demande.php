@@ -70,4 +70,28 @@ public function gestionnaire()
     return $this->belongsTo(User::class, 'gestionnaire_id');
 }
 
+// Récupérer le DAAF
+
+public function daaf()
+{
+    return $this->belongsTo(User::class, 'daaf_id');
+}
+
+// Récupérer le secrétaire
+
+public function secretaire()
+{
+    return $this->belongsTo(User::class, 'secretaire_id');
+}
+
+// (optionnel) caster les dates
+protected $casts = [
+    'date_validation_directeur' => 'datetime',
+    'date_validation_gestionnaire' => 'datetime',
+    'date_validation_daaf' => 'datetime',
+    'date_validation_secretaire' => 'datetime',
+];
+
+
+
 }
