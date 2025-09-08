@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PingController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Middleware\EnsureUserIsDirector;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Service;
@@ -119,6 +120,10 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->get('/demande_materiels', [DemandeMaterielController::class, 'index']);
+Route::middleware('auth:sanctum')->get('/demande_materiels/validation', [DemandeMaterielController::class, 'getRequestsForValidation']);
+Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/validate', [DemandeMaterielController::class, 'validateRequest']);
+Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/validate', [DemandeMaterielController::class, 'validateMateriel']);
+Route::middleware('auth:sanctum')->get('/demande_materiels/user/{userId}', [DemandeMaterielController::class, 'getRequestsForStockManager']);
 
 // Routes pour les notifications
 Route::middleware('auth:sanctum')->group(function () {
@@ -166,4 +171,5 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['message' => 'Toutes les notifications supprimées']);
     });
 });
+
 

@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Auth;
 use App\Models\DemandeMateriel;
 use App\Models\User;
+use App\Models\Service;
 
 
 class Demande extends Model
@@ -24,7 +26,7 @@ class Demande extends Model
     {
         static::creating(function ($demande) {
             // Récupère l'utilisateur qui crée la demande
-            $user = auth()->user();
+            $user = Auth::user();
 
             if ($user) {
                 $demande->user_id = $user->id;
@@ -55,4 +57,17 @@ class Demande extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // Une demande appartient à un service via l'utilisateur
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+
+    // Récupérer le gestionnaire du service
+public function gestionnaire()
+{
+    return $this->belongsTo(User::class, 'gestionnaire_id');
+}
+
 }

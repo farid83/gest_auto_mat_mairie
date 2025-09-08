@@ -331,7 +331,7 @@ console.log('Token :', token);
           </Button>
         </div>
         <div className="text-center text-sm text-muted-foreground">
-          © 2024 Mairie d'Adjarra - Tous droits réservés
+          © 2025 Mairie d'Adjarra - Tous droits réservés
         </div>
       </div>
       <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />

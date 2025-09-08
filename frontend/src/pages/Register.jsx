@@ -54,7 +54,7 @@ const Register = () => {
         setSuccess('Inscription réussie ! Vous pouvez vous connecter.');
         setTimeout(() => navigate('/login'), 1500);
       } else {
-        setError(data.message || 'Erreur lors de l’inscription');
+        setError(data.message || 'Erreur lors de l’inscription ou les mots de passe ne correspondent pas');
       }
     } catch (err) {
       setError('Erreur réseau');
@@ -151,7 +151,7 @@ const Register = () => {
           Déjà un compte ? <Link to="/login" className="text-blue-600 hover:underline">Se connecter</Link>
         </div>
         <div className="text-center text-sm text-muted-foreground">
-          © 2024 Mairie d'Adjarra - Tous droits réservés
+          © 2025 Mairie d'Adjarra - Tous droits réservés
         </div>
       </div>
     </div>
