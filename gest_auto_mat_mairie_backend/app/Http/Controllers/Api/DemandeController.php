@@ -55,14 +55,13 @@ class DemandeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+public function store(Request $request)
 {
     $user = $request->user();
     if (!$user) {
         return response()->json(['message' => 'Utilisateur non authentifié'], 401);
     }
 
-    // Validation uniquement des champs nécessaires côté front
     $validatedData = $request->validate([
         'justification' => 'nullable|string|max:1000',
         'materiels' => 'required|array|min:1',
@@ -71,41 +70,53 @@ class DemandeController extends Controller
         'materiels.*.justification' => 'nullable|string|max:1000',
     ]);
 
-    // Récupérer le directeur du service
-    $directeur = \App\Models\User::where('service_id', $user->service_id)
-        ->where('role', 'directeur')
-        ->first();
+    $rolesSpeciaux = ['secretaire_executif', 'daaf', 'directeur'];
 
-    if (!$directeur) {
+    // Récupérer les utilisateurs liés
+    $gestionnaire = User::where('role', 'gestionnaire_stock')->first();
+    if (!$gestionnaire) {
+        return response()->json(['message' => 'Aucun gestionnaire de stock trouvé'], 404);
+    }
+
+    $directeur = User::where('service_id', $user->service_id)
+                     ->where('role', 'directeur')
+                     ->first();
+
+    if (!$directeur && !in_array($user->role, $rolesSpeciaux)) {
         return response()->json(['message' => 'Aucun directeur trouvé pour ce service'], 404);
     }
+
+    // Déterminer le status initial
+    $statusInitial = in_array($user->role, $rolesSpeciaux) ? 'en_attente_stock' : 'en_attente';
 
     // Créer la demande
     $demande = Demande::create([
         'user_id' => $user->id,
         'service_id' => $user->service_id,
-        'directeur_id' => $directeur->id,
-        'status' => 'en_attente',
+        'directeur_id' => $directeur->id ?? null,
+        'gestionnaire_id' => $gestionnaire->id,
+        'status' => $statusInitial,
         'justification' => $validatedData['justification'] ?? null,
     ]);
 
-    // Enregistrer les matériels
+    // Créer les matériels liés
     foreach ($validatedData['materiels'] as $mat) {
         DemandeMateriel::create([
             'demande_id' => $demande->id,
             'materiel_id' => $mat['materiel_id'],
             'quantite_demandee' => $mat['quantite'],
-            'justification' => $mat['justification'] ?? '', // ✅ jamais null
+            'justification' => $mat['justification'] ?? '',
         ]);
     }
 
-    // Retourner la demande complète avec ses matériels
-    $demande = Demande::with('materiels.materiel')->find($demande->id);
-
-    // Envoyer une notification au directeur
-    if ($directeur) {
+    // Notifications
+    if (in_array($user->role, $rolesSpeciaux)) {
+        $gestionnaire->notify(new NewDemandeNotification($demande, $user->name));
+    } else {
         $directeur->notify(new NewDemandeNotification($demande, $user->name));
     }
+
+    $demande = Demande::with('materiels.materiel')->find($demande->id);
 
     return response()->json([
         'message' => 'Demande reçue avec succès',

@@ -8,6 +8,8 @@ use App\Models\DemandeMateriel;
 use App\Models\Demande;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
+use App\Notifications\DemandeValideeNotification;
+use App\Notifications\LivraisonReadyNotification;
 
 class DemandeMaterielController extends Controller
 {
@@ -48,40 +50,50 @@ class DemandeMaterielController extends Controller
     /**
      * Récupérer les demandes à valider selon le rôle
      */
-public function getRequestsForValidation(Request $request)
-{
-    $user = $request->user();
-    if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+     public function getRequestsForValidation(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
-    $roleStatusMap = [
-        'directeur' => ['status' => 'en_attente', 'field' => 'directeur_id'],
-        'gestionnaire_stock' => ['status' => 'en_attente_stock', 'field' => null],
-        'daaf' => ['status' => 'en_attente_daaf', 'field' => 'daaf_id'],
-        'secretaire_executif' => ['status' => 'en_attente_secretaire', 'field' => 'secretaire_id'],
-    ];
+        $roleStatusMap = [
+            'directeur' => ['status' => 'en_attente', 'field' => 'directeur_id'],
+            'gestionnaire_stock' => ['status' => 'en_attente_stock', 'field' => 'gestionnaire_id'],
+            'daaf' => ['status' => 'en_attente_daaf', 'field' => 'daaf_id'],
+            'secretaire_executif' => ['status' => 'en_attente_secretaire', 'field' => 'secretaire_id'],
+        ];
 
-    if (!isset($roleStatusMap[$user->role])) {
-        return response()->json(['message' => 'Accès non autorisé'], 403);
-    }
+        if (!isset($roleStatusMap[$user->role])) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
 
-    $status = $roleStatusMap[$user->role]['status'];
-    $roleField = $roleStatusMap[$user->role]['field'];
+        try {
+            if ($user->role === 'gestionnaire_stock') {
+                // Gestionnaire stock : récupérer toutes les demandes qui lui sont destinées
+                $demandes = Demande::with(['materiels.materiel', 'user'])
+                    ->where('gestionnaire_id', $user->id)
+                    ->whereIn('status', ['en_attente', 'en_attente_stock'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            } else {
+                $status = $roleStatusMap[$user->role]['status'];
+                $roleField = $roleStatusMap[$user->role]['field'];
 
-    try {
-        $demandes = Demande::with(['materiels.materiel', 'user'])
-            ->when($roleField, function($query) use ($roleField, $user) {
-                $query->where($roleField, $user->id);
-            })
-            ->where('status', $status)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($demande) {
+                $demandes = Demande::with(['materiels.materiel', 'user'])
+                    ->when($roleField, function ($query) use ($roleField, $user) {
+                        $query->where($roleField, $user->id);
+                    })
+                    ->where('status', $status)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            }
+
+            $demandes = $demandes->map(function ($demande) {
                 return [
                     'id' => $demande->id,
                     'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
                     'created_at' => $demande->created_at,
                     'status' => $demande->status,
-                    'materials' => $demande->materiels->map(function($dm) {
+                    'materials' => $demande->materiels->map(function ($dm) {
                         return [
                             'id' => $dm->id,
                             'name' => $dm->materiel->nom ?? 'Nom indisponible',
@@ -94,97 +106,109 @@ public function getRequestsForValidation(Request $request)
                     })
                 ];
             });
-    } catch (\Exception $e) {
-        \Log::error('Erreur getRequestsForValidation: ' . $e->getMessage());
-        return response()->json(['message' => 'Erreur serveur lors de la récupération des demandes'], 500);
-    }
+        } catch (\Exception $e) {
+            \Log::error('Erreur getRequestsForValidation: ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur serveur lors de la récupération des demandes'], 500);
+        }
 
-    return response()->json([
-        'message' => 'Liste des demandes à valider',
-        'demandes' => $demandes
-    ]);
-}
-
-    /**
+        return response()->json([
+            'message' => 'Liste des demandes à valider',
+            'demandes' => $demandes
+        ]);
+    }    /**
      * Validation globale d'une demande
      */
-public function validateRequest(Request $request, $id)
-{
-    $user = $request->user();
-    if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+    public function validateRequest(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
-    $demande = Demande::with('materiels.materiel')->find($id);
-    if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
+        $demande = Demande::with('materiels.materiel')->find($id);
+        if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
 
-    $validated = $request->validate([
-        'status' => 'required|in:validee,rejetee',
-        'commentaire' => 'nullable|string|max:500',
-    ]);
+        $validated = $request->validate([
+            'status' => 'required|in:validee,rejetee',
+            'commentaire' => 'nullable|string|max:500',
+        ]);
 
-    $role = $user->role;
+        $role = $user->role;
 
-    // Sauvegarde commentaire et date pour ce rôle
-    $commentField = 'commentaire_' . $role;
-    if (Schema::hasColumn('demandes', $commentField)) {
-        $demande->$commentField = $validated['commentaire'] ?? null;
-    }
-
-    $dateField = 'date_validation_' . $role;
-    if (Schema::hasColumn('demandes', $dateField)) {
-        $demande->$dateField = now();
-    }
-
-    if ($validated['status'] === 'validee') {
-        // Valider tous les matériels
-        foreach ($demande->materiels as $dm) {
-            $dm->quantite_validee = $dm->quantite_demandee;
-            $dm->save();
+        $commentField = 'commentaire_' . $role;
+        if (Schema::hasColumn('demandes', $commentField)) {
+            $demande->$commentField = $validated['commentaire'] ?? null;
         }
 
-        // Déterminer le rôle suivant et assigner la demande
-        switch ($role) {
-            case 'directeur':
-                $nextRole = 'gestionnaire_stock';
-                $demande->status = 'en_attente_stock';
-                $nextUser = User::where('role', $nextRole)->first();
-                if ($nextUser && Schema::hasColumn('demandes', $nextRole . '_id')) {
-                    $demande->{$nextRole . '_id'} = $nextUser->id;
-                }
-                break;
-
-            case 'gestionnaire_stock':
-                $nextRole = 'daaf';
-                $demande->status = 'en_attente_daaf';
-                $nextUser = User::where('role', $nextRole)->first();
-                if ($nextUser && Schema::hasColumn('demandes', $nextRole . '_id')) {
-                    $demande->{$nextRole . '_id'} = $nextUser->id;
-                }
-                break;
-
-            case 'daaf':
-                $nextRole = 'secretaire_executif';
-                $demande->status = 'en_attente_secretaire';
-                $nextUser = User::where('role', $nextRole)->first();
-                if ($nextUser && Schema::hasColumn('demandes', 'secretaire_id')) {
-                    $demande->secretaire_id = $nextUser->id;
-                }
-                break;
-
-            case 'secretaire_executif':
-                $demande->status = 'validee_finale';
-                break;
+        $dateField = 'date_validation_' . $role;
+        if (Schema::hasColumn('demandes', $dateField)) {
+            $demande->$dateField = now();
         }
-    } else {
-        $demande->status = 'rejetee';
+
+        if ($validated['status'] === 'validee') {
+            foreach ($demande->materiels as $dm) {
+                $dm->quantite_validee = $dm->quantite_demandee;
+                $dm->save();
+            }
+
+            switch ($role) {
+
+                case 'directeur':
+                    $nextRole = 'gestionnaire_stock';
+                    $demande->status = 'en_attente_stock';
+                    $nextUser = User::where('role', $nextRole)->first();
+                    if ($nextUser && Schema::hasColumn('demandes', 'gestionnaire_id')) {
+                        $demande->gestionnaire_id = $nextUser->id;
+                    }
+                    break;
+                case 'gestionnaire_stock':
+                    $nextRole = 'daaf';
+                    $demande->status = 'en_attente_daaf';
+                    $nextUser = User::where('role', $nextRole)->first();
+                    if ($nextUser && Schema::hasColumn('demandes', $nextRole . '_id')) {
+                        $demande->{$nextRole . '_id'} = $nextUser->id;
+                    }
+                    break;
+
+                case 'daaf':
+                    $nextRole = 'secretaire_executif';
+                    $demande->status = 'en_attente_secretaire';
+                    $nextUser = User::where('role', $nextRole)->first();
+                    if ($nextUser && Schema::hasColumn('demandes', 'secretaire_id')) {
+                        $demande->secretaire_id = $nextUser->id;
+                    }
+                    break;
+
+                case 'secretaire_executif':
+                    $demande->status = 'validee_finale';
+                    break;
+            }
+        } else {
+            $demande->status = 'rejetee';
+        }
+
+        $demande->save();
+
+
+        // Envoyer une notification au demandeur si c'est une validation (pas un rejet)
+        if ($validated['status'] === 'validee') {
+            $demandeur = $demande->user;
+            if ($demandeur) {
+                $demandeur->notify(new DemandeValideeNotification($demande, $user->name, $role));
+            }
+
+            // Si le rôle est secretaire_executif, envoyer une notification au gestionnaire de stock
+            if ($role === 'secretaire_executif') {
+                $gestionnaireStock = User::where('role', 'gestionnaire_stock')->first();
+                if ($gestionnaireStock) {
+                    $gestionnaireStock->notify(new LivraisonReadyNotification($demande, $user->name));
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => "Demande traitée par {$role}",
+            'demande' => $demande->load('materiels.materiel')
+        ]);
     }
-
-    $demande->save();
-
-    return response()->json([
-        'message' => "Demande traitée par {$role}",
-        'demande' => $demande->load('materiels.materiel')
-    ]);
-}
 
 
     /**
@@ -256,6 +280,22 @@ public function validateRequest(Request $request, $id)
         }
 
         $demande->save();
+
+        // Envoyer une notification au demandeur si c'est une validation de matériel
+        if ($validated['status'] === 'validee') {
+            $demandeur = $demande->user;
+            if ($demandeur) {
+                $demandeur->notify(new DemandeValideeNotification($demande, $user->name, $role));
+            }
+
+            // Si le rôle est secretaire_executif, envoyer une notification au gestionnaire de stock
+            if ($role === 'secretaire_executif') {
+                $gestionnaireStock = User::where('role', 'gestionnaire_stock')->first();
+                if ($gestionnaireStock) {
+                    $gestionnaireStock->notify(new LivraisonReadyNotification($demande, $user->name));
+                }
+            }
+        }
 
         return response()->json([
             'status' => 'success',

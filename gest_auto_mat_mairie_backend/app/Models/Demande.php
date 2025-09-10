@@ -18,33 +18,40 @@ class Demande extends Model
         'directeur_id',
         'status',
         'commentaire',
-        'date_validation_directeur'
+        'date_validation_directeur',
+        'gestionnaire_id',
+        'date_validation_gestionnaire',
+        'daaf_id',
+        'date_validation_daaf',
+        'secretaire_id',
+        'date_validation_secretaire',
+
     ];
 
     // Avant de créer une demande, on attribue automatiquement le directeur
-    protected static function booted()
-    {
-        static::creating(function ($demande) {
-            // Récupère l'utilisateur qui crée la demande
-            $user = Auth::user();
+    // protected static function booted()
+    // {
+    //     static::creating(function ($demande) {
+    //         // Récupère l'utilisateur qui crée la demande
+    //         $user = Auth::user();
 
-            if ($user) {
-                $demande->user_id = $user->id;
+    //         if ($user) {
+    //             $demande->user_id = $user->id;
 
-                // Trouve le directeur de son service
-                $directeur = User::where('service_id', $user->service_id)
-                                 ->where('role', 'directeur')
-                                 ->first();
+    //             // Trouve le directeur de son service
+    //             $directeur = User::where('service_id', $user->service_id)
+    //                              ->where('role', 'directeur')
+    //                              ->first();
 
-                if ($directeur) {
-                    $demande->directeur_id = $directeur->id;
-                } else {
-                    // Si pas de directeur, on peut mettre null ou gérer une exception
-                    $demande->directeur_id = null;
-                }
-            }
-        });
-    }
+    //             if ($directeur) {
+    //                 $demande->directeur_id = $directeur->id;
+    //             } else {
+    //                 // Si pas de directeur, on peut mettre null ou gérer une exception
+    //                 $demande->directeur_id = null;
+    //             }
+    //         }
+    //     });
+    // }
 
      // Une demande a plusieurs matériels
     public function materiels(): HasMany
@@ -91,6 +98,7 @@ protected $casts = [
     'date_validation_daaf' => 'datetime',
     'date_validation_secretaire' => 'datetime',
 ];
+
 
 
 
