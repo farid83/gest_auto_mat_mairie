@@ -21,25 +21,39 @@ class DemandeMaterielController extends Controller
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
-        $demandes = Demande::with('materiels.materiel')
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn($demande) => [
-                'id' => $demande->id,
-                'user_id' => $demande->user_id,
-                'created_at' => $demande->created_at,
-                'status' => $demande->status,
-                'materials' => $demande->materiels->map(fn($dm) => [
-                    'id' => $dm->id,
-                    'name' => $dm->materiel->nom ?? 'Nom indisponible',
-                    'quantity' => $dm->quantite_demandee,
-                    'justification' => $dm->justification ?? 'Aucune justification',
-                    'status' => $dm->quantite_validee !== null
-                        ? ($dm->quantite_validee > 0 ? 'validee' : 'rejetee')
-                        : 'en_attente'
-                ])
-            ]);
+        if ($user->role === 'directeur') {
+            // Le directeur voit ses demandes + celles de son service
+            $demandes = Demande::with('materiels.materiel')
+                ->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->orWhere('service_id', $user->service_id);
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            // Utilisateur classique : uniquement ses demandes
+            $demandes = Demande::with('materiels.materiel')
+                ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+
+        $demandes = $demandes->map(fn($demande) => [
+            'id' => $demande->id,
+            'user_id' => $demande->user_id,
+            'created_at' => $demande->created_at,
+            'status' => $demande->status,
+            'materials' => $demande->materiels->map(fn($dm) => [
+                'id' => $dm->id,
+                'materiel_id' => $dm->materiel_id, // <-- AJOUTE BIEN CETTE LIGNE
+                'name' => $dm->materiel->nom ?? 'Nom indisponible',
+                'quantity' => $dm->quantite_demandee,
+                'justification' => $dm->justification ?? 'Aucune justification',
+                'status' => $dm->quantite_validee !== null
+                    ? ($dm->quantite_validee > 0 ? 'validee' : 'rejetee')
+                    : 'en_attente'
+            ])
+        ]);
 
         return response()->json(['message' => 'Liste des demandes', 'demandes' => $demandes]);
     }
@@ -96,8 +110,11 @@ class DemandeMaterielController extends Controller
                     'materials' => $demande->materiels->map(function ($dm) {
                         return [
                             'id' => $dm->id,
+                            'materiel_id' => $dm->materiel_id, // <-- AJOUTE BIEN CETTE LIGNE
                             'name' => $dm->materiel->nom ?? 'Nom indisponible',
                             'quantity' => $dm->quantite_demandee ?? 0,
+                            'quantite_proposee_gestionnaire' => $dm->quantite_proposee_gestionnaire ?? null,
+                            'quantite_validee_daaf' => $dm->quantite_validee_daaf ?? null,
                             'justification' => $dm->justification ?? 'Aucune justification',
                             'status' => isset($dm->quantite_validee)
                                 ? ($dm->quantite_validee > 0 ? 'validee' : 'rejetee')
@@ -246,16 +263,36 @@ class DemandeMaterielController extends Controller
         $demande = Demande::with('materiels.materiel')->find($demandeId);
         if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
 
-        $dm = DemandeMateriel::firstOrCreate(
-            ['demande_id' => $demandeId, 'materiel_id' => $materielId],
-            [
+        $dm = DemandeMateriel::where('demande_id', $demandeId)
+            ->where('materiel_id', $materielId)
+            ->first();
+
+        if (!$dm) {
+            // Création si non existant
+            $dm = DemandeMateriel::create([
+                'demande_id' => $demandeId,
+                'materiel_id' => $materielId, // <-- Utilise $materielId
                 'quantite_demandee' => $validated['quantite_demandee'] ?? 1,
                 'justification' => 'Ajout automatique pour validation'
-            ]
-        );
+            ]);
+        }
 
-        $dm->quantite_validee = $validated['status'] === 'validee' ? $dm->quantite_demandee : 0;
-        $dm->commentaire = $validated['commentaire'] ?? null;
+        if ($validated['status'] === 'validee') {
+            if ($role === 'gestionnaire_stock' && isset($validated['quantite_demandee'])) {
+                $dm->quantite_proposee_gestionnaire = $validated['quantite_demandee'];
+                $dm->quantite_validee = $validated['quantite_demandee'];
+            }
+            if ($role === 'daaf' && isset($validated['quantite_demandee'])) {
+                // On garde la quantité proposée par le gestionnaire_stock
+                $dm->quantite_validee_daaf = $validated['quantite_demandee'];
+                $dm->quantite_validee = $validated['quantite_demandee'];
+            }
+            // Pour les autres rôles, garder l'ancien comportement
+        } else {
+            $dm->quantite_validee = 0;
+        }
+
+        // $dm->commentaire = $validated['commentaire'] ?? null;
         $dm->{'date_validation_' . $role} = now();
         $dm->save();
 
@@ -276,7 +313,8 @@ class DemandeMaterielController extends Controller
         } elseif ($allRejected) {
             $demande->status = 'rejetee';
         } else {
-            $demande->status = 'en_attente_' . $role;
+           // Garde le statut actuel ou choisis un statut autorisé
+    // $demande->status = $demande->status;
         }
 
         $demande->save();

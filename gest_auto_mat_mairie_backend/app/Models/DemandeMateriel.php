@@ -9,13 +9,16 @@ use App\Models\Materiel;
 class DemandeMateriel extends Model
 {
     //
-    protected $fillable = [
-        'demande_id',
-        'materiel_id',
-        'quantite_demandee',
-        'quantite_validee',
-        'justification'
-    ];
+   protected $fillable = [
+    'demande_id',
+    'materiel_id',
+    'quantite_demandee',
+    'quantite_validee',
+    'justification',
+    'quantite_proposee_gestionnaire',
+    'quantite_validee_daaf'
+];
+
 
     public function demande()
     {

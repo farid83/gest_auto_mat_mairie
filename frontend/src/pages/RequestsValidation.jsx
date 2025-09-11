@@ -4,12 +4,14 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { Input } from '../components/ui/input'; // Ajoute l'import
 
 const RequestsValidation = () => {
   const [requests, setRequests] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState('');
+  const [quantities, setQuantities] = useState({}); // Ajoute ce state
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,19 +51,28 @@ const RequestsValidation = () => {
     return mat.quantite_validee > 0 ? 'validee' : 'rejetee';
   };
 
+  const handleQuantityChange = (materielId, value) => {
+    setQuantities(prev => ({ ...prev, [materielId]: value }));
+  };
+
   const handleMaterielAction = async (id, materielId, action) => {
     setLoading(true);
     try {
+      const body = {
+        status: action === 'validé' ? 'validee' : 'rejetee',
+        commentaire: action === 'validé' ? 'Action validée' : 'Action rejetée',
+      };
+      // Ajoute la quantité si gestionnaire_stock ou daaf
+      if (['gestionnaire_stock', 'daaf'].includes(role) && action === 'validé') {
+        body.quantite_demandee = parseInt(quantities[materielId], 10) || 1;
+      }
       const response = await fetch(`http://127.0.0.1:8000/api/demande-materiels/${id}/materiels/${materielId}/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({
-          status: action === 'validé' ? 'validee' : 'rejetee',
-          commentaire: action === 'validé' ? 'Action validée' : 'Action rejetée',
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) throw new Error('Erreur sur l’action matériel');
@@ -181,26 +192,62 @@ const RequestsValidation = () => {
             </CardHeader>
             <CardContent>
               {selected.materials.map((mat, idxMat) => (
-                <div key={idxMat} className="mb-6 border-b pb-4">
+                <div
+                  key={idxMat}
+                  className={`mb-6 border-b pb-4 ${getMatStatus(mat) !== 'en_attente' ? 'opacity-60 pointer-events-none' : ''}`}
+                >
                   <div className="mb-2">
-                    <strong>Matériel :</strong> {mat.name}<br/>
-                    <strong>Quantité :</strong> {mat.quantity}<br/>
-                    <strong>Justification :</strong> {mat.justification}<br/>
-                    <Badge className={statusColors[getMatStatus(mat)] || 'bg-gray-100 text-gray-800'}>{getMatStatus(mat)}</Badge>
+                    <strong>Matériel :</strong> {mat.name}<br />
+                    <strong>Quantité demandée :</strong> {mat.quantity}<br />
+                    <strong>Quantité proposée :</strong> {mat.quantite_proposee_gestionnaire ?? '-'}<br />
+                    <strong>Quantité validée :</strong> {mat.quantite_validee_daaf ?? '-'}<br />
+                    <strong>Justification :</strong> {mat.justification}<br />
+                    <Badge className={statusColors[getMatStatus(mat)] || 'bg-gray-100 text-gray-800'}>
+                      {getMatStatus(mat)}
+                    </Badge>
                   </div>
-                  {['directeur','gestionnaire_stock','daaf','secretaire_executif'].includes(role) && (
+                  {/* Champ quantité pour gestionnaire_stock et daaf */}
+                  {['gestionnaire_stock', 'daaf'].includes(role) && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <label htmlFor={`qte-${mat.id}`}>Quantité à valider :</label>
+                      <Input
+                        id={`qte-${mat.id}`}
+                        type="number"
+                        min={1}
+                        value={quantities[mat.id] ?? mat.quantity}
+                        onChange={e => handleQuantityChange(mat.id, e.target.value)}
+                        className="w-24"
+                        disabled={loading || getMatStatus(mat) !== 'en_attente'}
+                      />
+                    </div>
+                  )}
+                  {['directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif'].includes(role) && (
                     <div className="mt-4 flex gap-4">
-                      <Button variant="default" size="sm" disabled={loading} onClick={() => handleMaterielAction(selected.id, mat.id, 'validé')}><CheckCircle className="w-4 h-4 mr-1"/> Valider</Button>
-                      <Button variant="destructive" size="sm" disabled={loading} onClick={() => handleMaterielAction(selected.id, mat.id, 'rejeté')}><XCircle className="w-4 h-4 mr-1"/> Rejeter</Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={loading || getMatStatus(mat) !== 'en_attente'}
+                        onClick={() => handleMaterielAction(selected.id, mat.materiel_id, 'validé')}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Valider
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={loading || getMatStatus(mat) !== 'en_attente'}
+                        onClick={() => handleMaterielAction(selected.id, mat.materiel_id, 'rejeté')}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Rejeter
+                      </Button>
                     </div>
                   )}
                 </div>
               ))}
 
-              {['directeur','gestionnaire_stock','daaf','secretaire_executif'].includes(role) && (
+              {['directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif'].includes(role) && (
                 <div className="mt-6 flex gap-4">
-                  <Button variant="default" onClick={() => handleAction(selected.id, 'validé')} disabled={loading}><CheckCircle className="w-4 h-4 mr-1"/> Valider toute la demande</Button>
-                  <Button variant="destructive" onClick={() => handleAction(selected.id, 'rejeté')} disabled={loading}><XCircle className="w-4 h-4 mr-1"/> Rejeter toute la demande</Button>
+                  <Button variant="default" onClick={() => handleAction(selected.id, 'validé')} disabled={loading}><CheckCircle className="w-4 h-4 mr-1" /> Valider toute la demande</Button>
+                  <Button variant="destructive" onClick={() => handleAction(selected.id, 'rejeté')} disabled={loading}><XCircle className="w-4 h-4 mr-1" /> Rejeter toute la demande</Button>
                 </div>
               )}
 

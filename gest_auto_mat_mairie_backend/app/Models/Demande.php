@@ -25,6 +25,8 @@ class Demande extends Model
         'date_validation_daaf',
         'secretaire_id',
         'date_validation_secretaire',
+        
+
 
     ];
 
