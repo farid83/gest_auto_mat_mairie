@@ -22,7 +22,6 @@ class DemandeMaterielController extends Controller
         if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
         if ($user->role === 'directeur') {
-            // Le directeur voit ses demandes + celles de son service
             $demandes = Demande::with('materiels.materiel')
                 ->where(function ($query) use ($user) {
                     $query->where('user_id', $user->id)
@@ -31,7 +30,6 @@ class DemandeMaterielController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else {
-            // Utilisateur classique : uniquement ses demandes
             $demandes = Demande::with('materiels.materiel')
                 ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
@@ -45,7 +43,7 @@ class DemandeMaterielController extends Controller
             'status' => $demande->status,
             'materials' => $demande->materiels->map(fn($dm) => [
                 'id' => $dm->id,
-                'materiel_id' => $dm->materiel_id, // <-- AJOUTE BIEN CETTE LIGNE
+                'materiel_id' => $dm->materiel_id,
                 'name' => $dm->materiel->nom ?? 'Nom indisponible',
                 'quantity' => $dm->quantite_demandee,
                 'justification' => $dm->justification ?? 'Aucune justification',
@@ -61,10 +59,7 @@ class DemandeMaterielController extends Controller
     /**
      * Récupérer les demandes à valider selon le rôle
      */
-    /**
-     * Récupérer les demandes à valider selon le rôle
-     */
-     public function getRequestsForValidation(Request $request)
+    public function getRequestsForValidation(Request $request)
     {
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
@@ -82,7 +77,6 @@ class DemandeMaterielController extends Controller
 
         try {
             if ($user->role === 'gestionnaire_stock') {
-                // Gestionnaire stock : récupérer toutes les demandes qui lui sont destinées
                 $demandes = Demande::with(['materiels.materiel', 'user'])
                     ->where('gestionnaire_id', $user->id)
                     ->whereIn('status', ['en_attente', 'en_attente_stock'])
@@ -110,7 +104,7 @@ class DemandeMaterielController extends Controller
                     'materials' => $demande->materiels->map(function ($dm) {
                         return [
                             'id' => $dm->id,
-                            'materiel_id' => $dm->materiel_id, // <-- AJOUTE BIEN CETTE LIGNE
+                            'materiel_id' => $dm->materiel_id,
                             'name' => $dm->materiel->nom ?? 'Nom indisponible',
                             'quantity' => $dm->quantite_demandee ?? 0,
                             'quantite_proposee_gestionnaire' => $dm->quantite_proposee_gestionnaire ?? null,
@@ -132,7 +126,9 @@ class DemandeMaterielController extends Controller
             'message' => 'Liste des demandes à valider',
             'demandes' => $demandes
         ]);
-    }    /**
+    }
+
+    /**
      * Validation globale d'une demande
      */
     public function validateRequest(Request $request, $id)
@@ -167,7 +163,6 @@ class DemandeMaterielController extends Controller
             }
 
             switch ($role) {
-
                 case 'directeur':
                     $nextRole = 'gestionnaire_stock';
                     $demande->status = 'en_attente_stock';
@@ -184,7 +179,6 @@ class DemandeMaterielController extends Controller
                         $demande->{$nextRole . '_id'} = $nextUser->id;
                     }
                     break;
-
                 case 'daaf':
                     $nextRole = 'secretaire_executif';
                     $demande->status = 'en_attente_secretaire';
@@ -193,7 +187,6 @@ class DemandeMaterielController extends Controller
                         $demande->secretaire_id = $nextUser->id;
                     }
                     break;
-
                 case 'secretaire_executif':
                     $demande->status = 'validee_finale';
                     break;
@@ -204,15 +197,11 @@ class DemandeMaterielController extends Controller
 
         $demande->save();
 
-
-        // Envoyer une notification au demandeur si c'est une validation (pas un rejet)
         if ($validated['status'] === 'validee') {
             $demandeur = $demande->user;
             if ($demandeur) {
                 $demandeur->notify(new DemandeValideeNotification($demande, $user->name, $role));
             }
-
-            // Si le rôle est secretaire_executif, envoyer une notification au gestionnaire de stock
             if ($role === 'secretaire_executif') {
                 $gestionnaireStock = User::where('role', 'gestionnaire_stock')->first();
                 if ($gestionnaireStock) {
@@ -226,7 +215,6 @@ class DemandeMaterielController extends Controller
             'demande' => $demande->load('materiels.materiel')
         ]);
     }
-
 
     /**
      * Validation par matériel spécifique
@@ -268,26 +256,27 @@ class DemandeMaterielController extends Controller
             ->first();
 
         if (!$dm) {
-            // Création si non existant
             $dm = DemandeMateriel::create([
                 'demande_id' => $demandeId,
-                'materiel_id' => $materielId, // <-- Utilise $materielId
+                'materiel_id' => $materielId,
                 'quantite_demandee' => $validated['quantite_demandee'] ?? 1,
                 'justification' => 'Ajout automatique pour validation'
             ]);
         }
 
         if ($validated['status'] === 'validee') {
-            if ($role === 'gestionnaire_stock' && isset($validated['quantite_demandee'])) {
-                $dm->quantite_proposee_gestionnaire = $validated['quantite_demandee'];
-                $dm->quantite_validee = $validated['quantite_demandee'];
+            // Si gestionnaire_stock ou daaf, utiliser la quantité envoyée
+            if (in_array($role, ['gestionnaire_stock', 'daaf']) && isset($validated['quantites'][$materielId])) {
+                $dm->quantite_validee = $validated['quantites'][$materielId];
+                if ($role === 'gestionnaire_stock') {
+                    $dm->quantite_proposee_gestionnaire = $validated['quantites'][$materielId];
+                }
+                if ($role === 'daaf') {
+                    $dm->quantite_validee_daaf = $validated['quantites'][$materielId];
+                }
+            } else {
+                $dm->quantite_validee = $dm->quantite_demandee;
             }
-            if ($role === 'daaf' && isset($validated['quantite_demandee'])) {
-                // On garde la quantité proposée par le gestionnaire_stock
-                $dm->quantite_validee_daaf = $validated['quantite_demandee'];
-                $dm->quantite_validee = $validated['quantite_demandee'];
-            }
-            // Pour les autres rôles, garder l'ancien comportement
         } else {
             $dm->quantite_validee = 0;
         }
@@ -296,7 +285,6 @@ class DemandeMaterielController extends Controller
         $dm->{'date_validation_' . $role} = now();
         $dm->save();
 
-        // Vérifier l'état global
         $demande->load('materiels');
         $allValidated = $demande->materiels->every(fn($m) => $m->quantite_validee > 0);
         $allRejected = $demande->materiels->every(fn($m) => $m->quantite_validee === 0);
@@ -310,23 +298,29 @@ class DemandeMaterielController extends Controller
 
         if ($allValidated) {
             $demande->status = $nextStatusMap[$role] ?? 'validee';
+
+            // Ajout automatique du daaf_id et secretaire_id si besoin
+            if ($role === 'gestionnaire_stock') {
+                $daaf = User::where('role', 'daaf')->first();
+                if ($daaf) $demande->daaf_id = $daaf->id;
+            }
+            if ($role === 'daaf') {
+                $secretaire = User::where('role', 'secretaire_executif')->first();
+                if ($secretaire) $demande->secretaire_id = $secretaire->id;
+            }
         } elseif ($allRejected) {
             $demande->status = 'rejetee';
         } else {
-           // Garde le statut actuel ou choisis un statut autorisé
-    // $demande->status = $demande->status;
+            // Garde le statut actuel
         }
 
         $demande->save();
 
-        // Envoyer une notification au demandeur si c'est une validation de matériel
         if ($validated['status'] === 'validee') {
             $demandeur = $demande->user;
             if ($demandeur) {
                 $demandeur->notify(new DemandeValideeNotification($demande, $user->name, $role));
             }
-
-            // Si le rôle est secretaire_executif, envoyer une notification au gestionnaire de stock
             if ($role === 'secretaire_executif') {
                 $gestionnaireStock = User::where('role', 'gestionnaire_stock')->first();
                 if ($gestionnaireStock) {
@@ -340,5 +334,74 @@ class DemandeMaterielController extends Controller
             'message' => "Matériel {$validated['status']} par {$role}",
             'demande' => $demande->load('materiels.materiel')
         ]);
+    }
+
+    /**
+     * Validation par matériel en batch
+     */
+    public function batchValidateMateriels(Request $request, $demandeId)
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+
+        $validated = $request->validate([
+            'materiel_ids' => 'required|array|min:1',
+            'status' => 'required|in:validee,rejetee',
+        ]);
+
+        $role = $user->role;
+        $demande = Demande::with('materiels')->find($demandeId);
+        if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
+
+        foreach ($validated['materiel_ids'] as $materielId) {
+            $dm = DemandeMateriel::where('demande_id', $demandeId)
+                ->where('materiel_id', $materielId)
+                ->first();
+            if (!$dm) continue;
+
+            if ($validated['status'] === 'validee') {
+                if (in_array($role, ['gestionnaire_stock', 'daaf']) && isset($validated['quantites'][$materielId])) {
+                    $dm->quantite_validee = $validated['quantites'][$materielId];
+                    if ($role === 'gestionnaire_stock') $dm->quantite_proposee_gestionnaire = $validated['quantites'][$materielId];
+                    if ($role === 'daaf') $dm->quantite_validee_daaf = $validated['quantites'][$materielId];
+                } else {
+                    $dm->quantite_validee = $dm->quantite_demandee;
+                }
+            } else {
+                $dm->quantite_validee = 0;
+            }
+            $dm->{'date_validation_' . $role} = now();
+            $dm->save();
+        }
+
+        $demande->load('materiels');
+        $allValidated = $demande->materiels->every(fn($m) => $m->quantite_validee > 0);
+        $allRejected = $demande->materiels->every(fn($m) => $m->quantite_validee === 0);
+
+        $nextStatusMap = [
+            'directeur' => 'en_attente_stock',
+            'gestionnaire_stock' => 'en_attente_daaf',
+            'daaf' => 'en_attente_secretaire',
+            'secretaire_executif' => 'validee_finale'
+        ];
+
+        if ($allValidated) {
+            $demande->status = $nextStatusMap[$role] ?? 'validee';
+
+            // Ajout automatique du daaf_id et secretaire_id si besoin
+            if ($role === 'gestionnaire_stock') {
+                $daaf = User::where('role', 'daaf')->first();
+                if ($daaf) $demande->daaf_id = $daaf->id;
+            }
+            if ($role === 'daaf') {
+                $secretaire = User::where('role', 'secretaire_executif')->first();
+                if ($secretaire) $demande->secretaire_id = $secretaire->id;
+            }
+        } elseif ($allRejected) {
+            $demande->status = 'rejetee';
+        }
+        $demande->save();
+
+        return response()->json(['status' => 'success', 'message' => 'Matériels traités', 'demande' => $demande->load('materiels.materiel')]);
     }
 }

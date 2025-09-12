@@ -4,14 +4,14 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
-import { Input } from '../components/ui/input'; // Ajoute l'import
 
 const RequestsValidation = () => {
   const [requests, setRequests] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState('');
-  const [quantities, setQuantities] = useState({}); // Ajoute ce state
+  const [selectedMateriels, setSelectedMateriels] = useState([]);
+  const [quantities, setQuantities] = useState({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,7 +28,6 @@ const RequestsValidation = () => {
       const data = await response.json();
       setRequests(data.demandes || []);
 
-      // Récupérer le rôle de l'utilisateur depuis la première demande (ou définir manuellement si besoin)
       if (data.demandes?.length) {
         const statusRoleMap = {
           en_attente: 'directeur',
@@ -51,22 +50,22 @@ const RequestsValidation = () => {
     return mat.quantite_validee > 0 ? 'validee' : 'rejetee';
   };
 
-  const handleQuantityChange = (materielId, value) => {
-    setQuantities(prev => ({ ...prev, [materielId]: value }));
-  };
-
-  const handleMaterielAction = async (id, materielId, action) => {
+  const handleBatchAction = async (demandeId, materielIds, action) => {
     setLoading(true);
     try {
-      const body = {
-        status: action === 'validé' ? 'validee' : 'rejetee',
-        commentaire: action === 'validé' ? 'Action validée' : 'Action rejetée',
-      };
-      // Ajoute la quantité si gestionnaire_stock ou daaf
+      // Prépare les quantités à envoyer
+      let quantites = {};
       if (['gestionnaire_stock', 'daaf'].includes(role) && action === 'validé') {
-        body.quantite_demandee = parseInt(quantities[materielId], 10) || 1;
+        materielIds.forEach(id => {
+          quantites[id] = parseInt(quantities[id], 10) || 1;
+        });
       }
-      const response = await fetch(`http://127.0.0.1:8000/api/demande-materiels/${id}/materiels/${materielId}/validate`, {
+      const body = {
+        materiel_ids: materielIds,
+        status: action === 'validé' ? 'validee' : 'rejetee',
+        quantites, // Ajout des quantités
+      };
+      const response = await fetch(`http://127.0.0.1:8000/api/demande-materiels/${demandeId}/materiels/batch-validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,39 +73,12 @@ const RequestsValidation = () => {
         },
         body: JSON.stringify(body),
       });
-
-      if (!response.ok) throw new Error('Erreur sur l’action matériel');
+      if (!response.ok) throw new Error('Erreur sur la validation par lot');
       await response.json();
-      toast({ title: 'Succès', description: `Matériel ${action} avec succès` });
+      toast({ title: 'Succès', description: `Sélection ${action} avec succès` });
+      setSelectedMateriels([]);
+      setQuantities({});
       fetchRequests();
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Erreur', description: "Impossible d'effectuer l'action", variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAction = async (id, action) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/api/demande-materiels/${id}/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          status: action === 'validé' ? 'validee' : 'rejetee',
-          commentaire: action === 'validé' ? 'Demande validée' : 'Demande rejetée',
-        }),
-      });
-
-      if (!response.ok) throw new Error('Erreur sur l’action demande');
-      await response.json();
-      toast({ title: 'Succès', description: `Demande ${action} avec succès` });
-      fetchRequests();
-      setSelected(null);
     } catch (error) {
       console.error(error);
       toast({ title: 'Erreur', description: "Impossible d'effectuer l'action", variant: 'destructive' });
@@ -206,48 +178,61 @@ const RequestsValidation = () => {
                       {getMatStatus(mat)}
                     </Badge>
                   </div>
-                  {/* Champ quantité pour gestionnaire_stock et daaf */}
+                  {/* Checkbox pour sélection multiple */}
+                  <div className="mt-2 flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedMateriels.includes(mat.materiel_id)}
+                      disabled={getMatStatus(mat) !== 'en_attente'}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedMateriels([...selectedMateriels, mat.materiel_id]);
+                        } else {
+                          setSelectedMateriels(selectedMateriels.filter(id => id !== mat.materiel_id));
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <label>Sélectionner ce matériel</label>
+                  </div>
                   {['gestionnaire_stock', 'daaf'].includes(role) && (
                     <div className="mt-2 flex items-center gap-2">
-                      <label htmlFor={`qte-${mat.id}`}>Quantité à valider :</label>
-                      <Input
-                        id={`qte-${mat.id}`}
+                      <label htmlFor={`qte-${mat.materiel_id}`}>Quantité à valider :</label>
+                      <input
+                        id={`qte-${mat.materiel_id}`}
                         type="number"
                         min={1}
-                        value={quantities[mat.id] ?? mat.quantity}
-                        onChange={e => handleQuantityChange(mat.id, e.target.value)}
-                        className="w-24"
+                        value={quantities[mat.materiel_id] ?? mat.quantity}
+                        onChange={e => setQuantities({
+                          ...quantities,
+                          [mat.materiel_id]: e.target.value
+                        })}
+                        className="w-24 border rounded px-2 py-1"
                         disabled={loading || getMatStatus(mat) !== 'en_attente'}
                       />
-                    </div>
-                  )}
-                  {['directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif'].includes(role) && (
-                    <div className="mt-4 flex gap-4">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={loading || getMatStatus(mat) !== 'en_attente'}
-                        onClick={() => handleMaterielAction(selected.id, mat.materiel_id, 'validé')}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Valider
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={loading || getMatStatus(mat) !== 'en_attente'}
-                        onClick={() => handleMaterielAction(selected.id, mat.materiel_id, 'rejeté')}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" /> Rejeter
-                      </Button>
                     </div>
                   )}
                 </div>
               ))}
 
-              {['directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif'].includes(role) && (
-                <div className="mt-6 flex gap-4">
-                  <Button variant="default" onClick={() => handleAction(selected.id, 'validé')} disabled={loading}><CheckCircle className="w-4 h-4 mr-1" /> Valider toute la demande</Button>
-                  <Button variant="destructive" onClick={() => handleAction(selected.id, 'rejeté')} disabled={loading}><XCircle className="w-4 h-4 mr-1" /> Rejeter toute la demande</Button>
+              {selectedMateriels.length > 0 && (
+                <div className="mt-4 flex gap-4">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    disabled={loading}
+                    onClick={() => handleBatchAction(selected.id, selectedMateriels, 'validé')}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" /> Valider la sélection
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={loading}
+                    onClick={() => handleBatchAction(selected.id, selectedMateriels, 'rejeté')}
+                  >
+                    <XCircle className="w-4 h-4 mr-1" /> Rejeter la sélection
+                  </Button>
                 </div>
               )}
 

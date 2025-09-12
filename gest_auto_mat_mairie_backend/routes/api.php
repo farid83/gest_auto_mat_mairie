@@ -93,7 +93,7 @@ Route::middleware('auth:sanctum')->post('/auth/logout', function (Request $reque
     return response()->json(['message' => 'Déconnecté avec succès']);
 });
 
-Route::get('/services', function() {
+Route::get('/services', function () {
     return Service::all();
 });
 
@@ -136,6 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/demande-materiels/{id}/materiels/{materielId}/daaf-validate', [DemandeMaterielController::class, 'validateMaterielByDaaf']);
     Route::post('/demande-materiels/{id}/materiels/{materielId}/secretaire-validate', [DemandeMaterielController::class, 'validateMaterielBySecretaire']);
     Route::post('/demande-materiels/{id}/stock-action', [DemandeMaterielController::class, 'validateRequest']);
+    Route::post('/demande-materiels/{demandeId}/materiels/batch-validate', [DemandeMaterielController::class, 'batchValidateMateriels']);
 });
 
 
@@ -150,23 +151,20 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user()->unreadNotifications()->latest()->get();
     });
 
-   Route::post('/notifications/{notification}/mark-as-read', function (Request $request, $notification) {
-    $notif = $request->user()->notifications()->find($notification);
-    if ($notif) {
-        $notif->markAsRead();
-        return response()->json(['message' => 'Notification marquée comme lue']);
-    }
-    return response()->json(['message' => 'Notification non trouvée'], 404);
-});
+    Route::post('/notifications/{notification}/mark-as-read', function (Request $request, $notification) {
+        $notif = $request->user()->notifications()->find($notification);
+        if ($notif) {
+            $notif->markAsRead();
+            return response()->json(['message' => 'Notification marquée comme lue']);
+        }
+        return response()->json(['message' => 'Notification non trouvée'], 404);
+    });
 
 
     Route::post('/notifications/mark-all-read', function (Request $request) {
         $request->user()->notifications()->update(['read_at' => now()]);
         return response()->json(['message' => 'Toutes les notifications marquées comme lues']);
     });
-
-
-
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -187,8 +185,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+Route::middleware('auth:sanctum')->post('/demande-materiels/{demandeId}/materiels/batch-validate', [DemandeMaterielController::class, 'batchValidateMateriels']);
 // Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function () {
 //     Route::get('/directeur-only', function () {
 //         return response()->json(['message' => 'Accès autorisé au directeur uniquement']);
 //     });
-// });      
+// });
