@@ -25,7 +25,7 @@ class DemandeMaterielController extends Controller
             $demandes = Demande::with('materiels.materiel')
                 ->where(function ($query) use ($user) {
                     $query->where('user_id', $user->id)
-                          ->orWhere('service_id', $user->service_id);
+                        ->orWhere('service_id', $user->service_id);
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -158,9 +158,27 @@ class DemandeMaterielController extends Controller
 
         if ($validated['status'] === 'validee') {
             foreach ($demande->materiels as $dm) {
-                $dm->quantite_validee = $dm->quantite_demandee;
+                if (!in_array($dm->materiel_id, $validated['materiel_ids'])) {
+                    continue;
+                }
+
+                if ($role === 'gestionnaire_stock' && isset($validated['quantites'][$dm->materiel_id])) {
+                    $dm->quantite_proposee_gestionnaire = $validated['quantites'][$dm->materiel_id];
+                }
+
+                if ($role === 'daaf' && isset($validated['quantites'][$dm->materiel_id])) {
+                    $dm->quantite_validee_daaf = $validated['quantites'][$dm->materiel_id];
+                }
+
+                $dm->quantite_validee = $validated['status'] === 'validee'
+                    ? ($role === 'gestionnaire_stock'
+                        ? $dm->quantite_proposee_gestionnaire
+                        : $dm->quantite_validee_daaf)
+                    : 0;
+
                 $dm->save();
             }
+
 
             switch ($role) {
                 case 'directeur':
@@ -345,8 +363,11 @@ class DemandeMaterielController extends Controller
         if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
         $validated = $request->validate([
-            'materiel_ids' => 'required|array|min:1',
+            'materiel_ids' => 'required|array',
+            'materiel_ids.*' => 'exists:demande_materiels,materiel_id',
             'status' => 'required|in:validee,rejetee',
+            'quantites' => 'nullable|array',
+            'quantites.*' => 'nullable|integer|min:1',
         ]);
 
         $role = $user->role;
