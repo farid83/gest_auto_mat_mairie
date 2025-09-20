@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { useAuth } from '../../contexts/AuthContext';
 import { mockNotifications, roleLabels } from '../../services/mock';
 import { Toaster } from 'sonner';
-import NotificationBell from '../common/NotificationBell';
+// import NotificationBell from '../common/NotificationBell';
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -62,9 +62,9 @@ console.log("LocalStorage ->",
     return menuItems.filter(item => item.roles.includes(user.role));
   },   [user, menuItems]);
 
-  const unreadNotifications = mockNotifications.filter(
-    notif => notif.user_id === user?.id && !notif.read
-  );
+  // const unreadNotifications = mockNotifications.filter(
+  //   notif => notif.user_id === user?.id && !notif.read
+  // );
 
   const handleLogout = async () => {
     await logout();
@@ -187,7 +187,7 @@ console.log("LocalStorage ->",
               </Button>
 
               {/* Notifications */}
-              <NotificationBell />
+              {/* <NotificationBell /> */}
 
               {/* User Menu */}
               <DropdownMenu>

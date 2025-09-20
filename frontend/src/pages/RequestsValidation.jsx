@@ -166,7 +166,7 @@ const RequestsValidation = () => {
               {selected.materials.map((mat, idxMat) => (
                 <div
                   key={idxMat}
-                  className={`mb-6 border-b pb-4 ${getMatStatus(mat) !== 'en_attente' ? 'opacity-60 pointer-events-none' : ''}`}
+                  className={`mb-6 border-b pb-4 ${getMatStatus(mat) !== 'en_attente' ? 'opacity-75' : ''}`}
                 >
                   <div className="mb-2">
                     <strong>Matériel :</strong> {mat.name}<br />
@@ -195,7 +195,7 @@ const RequestsValidation = () => {
                     />
                     <label>Sélectionner ce matériel</label>
                   </div>
-                  {['gestionnaire_stock', 'daaf'].includes(role) && (
+                  {['gestionnaire_stock', 'daaf'].includes(role) && getMatStatus(mat) === 'en_attente' && (
                     <div className="mt-2 flex items-center gap-2">
                       <label htmlFor={`qte-${mat.materiel_id}`}>Quantité à valider :</label>
                       <input
@@ -208,7 +208,7 @@ const RequestsValidation = () => {
                           [mat.materiel_id]: e.target.value
                         })}
                         className="w-24 border rounded px-2 py-1"
-                        disabled={loading || getMatStatus(mat) !== 'en_attente'}
+                        disabled={loading}
                       />
                     </div>
                   )}

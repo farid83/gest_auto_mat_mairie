@@ -12,7 +12,7 @@ import {
   requestsService,
   validationsService,
   deliveriesService,
-  notificationsService,
+  // notificationsService,
   dashboardService,
 
 } from '../services/api';
@@ -28,9 +28,9 @@ export const queryKeys = {
   request: (id) => ['requests', id],
   validations: ['validations'],
   deliveries: ['deliveries'],
-  notifications: ['notifications'],
+  // notifications: ['notifications'],
   dashboardStats: ['dashboard', 'stats'],
-  unreadNotifications: ['unreadNotifications'],
+  // unreadNotifications: ['unreadNotifications'],
 };
 
 // Hooks pour les utilisateurs
@@ -196,80 +196,80 @@ export const useConfirmReception = () => {
 
 // Hooks pour les notifications
 // 📌 Récupérer toutes les notifications
-export const useNotifications = (params = {}) => {
-  return useQuery({
-    queryKey: [...queryKeys.notifications, params],
-    queryFn: () => notificationsService.getNotifications(params),
-    staleTime: 30 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-  });
-};
+// export const useNotifications = (params = {}) => {
+//   return useQuery({
+//     queryKey: [...queryKeys.notifications, params],
+//     queryFn: () => notificationsService.getNotifications(params),
+//     staleTime: 30 * 1000,
+//     refetchInterval: 2 * 60 * 1000,
+//   });
+// };
 
-// 📌 Récupérer seulement les notifications non lues
-export const useUnreadNotifications = () => {
-  return useQuery({
-    queryKey: [...queryKeys.notifications, { unread: true }],
-    queryFn: () => notificationsService.getNotifications({ unread: true }),
-    staleTime: 30 * 1000,
-    refetchInterval: 1 * 60 * 1000,
-  });
-};
+// // 📌 Récupérer seulement les notifications non lues
+// export const useUnreadNotifications = () => {
+//   return useQuery({
+//     queryKey: [...queryKeys.notifications, { unread: true }],
+//     queryFn: () => notificationsService.getNotifications({ unread: true }),
+//     staleTime: 30 * 1000,
+//     refetchInterval: 1 * 60 * 1000,
+//   });
+// };
 
-// 📌 Marquer une notification comme lue
-export const useMarkNotificationAsRead = () => {
-  const queryClient = useQueryClient();
+// // 📌 Marquer une notification comme lue
+// export const useMarkNotificationAsRead = () => {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (id) => notificationsService.markAsRead(id),
-    onSuccess: (data, id) => {
-      queryClient.setQueryData(queryKeys.notifications, (old = []) =>
-        old.map((notif) =>
-          notif.id === id ? { ...notif, read_at: new Date().toISOString() } : notif
-        )
-      );
-    },
-  });
-};
+//   return useMutation({
+//     mutationFn: (id) => notificationsService.markAsRead(id),
+//     onSuccess: (data, id) => {
+//       queryClient.setQueryData(queryKeys.notifications, (old = []) =>
+//         old.map((notif) =>
+//           notif.id === id ? { ...notif, read_at: new Date().toISOString() } : notif
+//         )
+//       );
+//     },
+//   });
+// };
 
-// 📌 Marquer toutes les notifications comme lues
-export const useMarkAllNotificationsAsRead = () => {
-  const queryClient = useQueryClient();
+// // 📌 Marquer toutes les notifications comme lues
+// export const useMarkAllNotificationsAsRead = () => {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: () => notificationsService.markAllAsRead(),
-    onSuccess: () => {
-      queryClient.setQueryData(queryKeys.notifications, (old = []) =>
-        old.map((notif) => ({ ...notif, read_at: new Date().toISOString() }))
-      );
-    },
-  });
-};
+//   return useMutation({
+//     mutationFn: () => notificationsService.markAllAsRead(),
+//     onSuccess: () => {
+//       queryClient.setQueryData(queryKeys.notifications, (old = []) =>
+//         old.map((notif) => ({ ...notif, read_at: new Date().toISOString() }))
+//       );
+//     },
+//   });
+// };
 
-// 📌 Supprimer une notification
-export const useDeleteNotification = () => {
-  const queryClient = useQueryClient();
+// // 📌 Supprimer une notification
+// export const useDeleteNotification = () => {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (id) => notificationsService.deleteNotification(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadNotifications });
-    },
-  });
-};
+//   return useMutation({
+//     mutationFn: (id) => notificationsService.deleteNotification(id),
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+//       queryClient.invalidateQueries({ queryKey: queryKeys.unreadNotifications });
+//     },
+//   });
+// };
 
-// 📌 Supprimer toutes les notifications
-export const useClearAllNotifications = () => {
-  const queryClient = useQueryClient();
+// // 📌 Supprimer toutes les notifications
+// export const useClearAllNotifications = () => {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: () => notificationsService.clearAll(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadNotifications });
-    },
-  });
-};
+//   return useMutation({
+//     mutationFn: () => notificationsService.clearAll(),
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+//       queryClient.invalidateQueries({ queryKey: queryKeys.unreadNotifications });
+//     },
+//   });
+// };
 
 
 // Hook pour les statistiques du dashboard

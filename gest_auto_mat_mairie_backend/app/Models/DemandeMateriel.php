@@ -16,7 +16,8 @@ class DemandeMateriel extends Model
     'quantite_validee',
     'justification',
     'quantite_proposee_gestionnaire',
-    'quantite_validee_daaf'
+    'quantite_validee_daaf',
+    'status',
 ];
 
 

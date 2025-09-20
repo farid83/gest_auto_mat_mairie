@@ -31,7 +31,7 @@ const Dashboard = () => {
     materials_total: 0,
     materials_low_stock: 0,
     pending_validations: 0,
-    notifications_unread: 0,
+    // notifications_unread: 0,
     user_requests_total: 0,
     user_requests_pending: 0
   };
@@ -105,16 +105,16 @@ const Dashboard = () => {
       );
     }
 
-    roleStats.push(
-      {
-        title: "Notifications",
-        value: currentStats.notifications_unread,
-        icon: Clock,
-        description: "Non lues",
-        color: "red",
-        urgent: currentStats.notifications_unread > 0
-      }
-    );
+    // roleStats.push(
+    //   {
+    //     title: "Notifications",
+    //     value: currentStats.notifications_unread,
+    //     icon: Clock,
+    //     description: "Non lues",
+    //     color: "red",
+    //     urgent: currentStats.notifications_unread > 0
+    //   }
+    // );
 
     return roleStats;
   };
@@ -158,7 +158,7 @@ const Dashboard = () => {
             Bonjour, {user?.name}
           </h1>
           <p className="text-muted-foreground">
-            Voici un aperçu de vos activités et notifications
+            Voici un aperçu de vos activités
             {statsLoading && " (chargement en cours...)"}
           </p>
         </div>

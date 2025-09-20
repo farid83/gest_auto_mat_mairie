@@ -208,39 +208,39 @@ export const deliveriesService = {
 };
 
 // Service notifications
-export const notificationsService = {
-  async getNotifications(params = {}) {
-    let url = '/api/notifications';
-    if (params.unread === true) {
-      url = '/api/notifications/unread';
-      delete params.unread;
-    }
-    const response = await api.get(url, { params });
-    return response.data;
-  },
+// export const notificationsService = {
+//   async getNotifications(params = {}) {
+//     let url = '/api/notifications';
+//     if (params.unread === true) {
+//       url = '/api/notifications/unread';
+//       delete params.unread;
+//     }
+//     const response = await api.get(url, { params });
+//     return response.data;
+//   },
 
-  async markAsRead(id) {
-    const response = await api.post(`/api/notifications/${id}/mark-as-read`);
-    return response.data;
-  },
+//   async markAsRead(id) {
+//     const response = await api.post(`/api/notifications/${id}/mark-as-read`);
+//     return response.data;
+//   },
 
-  async markAllAsRead() {
-    const response = await api.post('/api/notifications/mark-all-read');
-    return response.data;
-  },
+//   async markAllAsRead() {
+//     const response = await api.post('/api/notifications/mark-all-read');
+//     return response.data;
+//   },
 
-  // ✅ Supprimer une seule notification
-  async deleteNotification(id) {
-    const response = await api.delete(`/api/notifications/${id}`);
-    return response.data;
-  },
+//   // ✅ Supprimer une seule notification
+//   async deleteNotification(id) {
+//     const response = await api.delete(`/api/notifications/${id}`);
+//     return response.data;
+//   },
 
-  // ✅ Supprimer toutes les notifications
-  async clearAll() {
-    const response = await api.delete('/api/notifications');
-    return response.data;
-  }
-};
+//   // ✅ Supprimer toutes les notifications
+//   async clearAll() {
+//     const response = await api.delete('/api/notifications');
+//     return response.data;
+//   }
+// };
 
 
 // Service mouvements de stock
@@ -273,56 +273,56 @@ api.interceptors.request.use((config) => {
 });
 
 // 📌 Marquer TOUTES les notifications comme lues
-export const useMarkAllNotificationsAsRead = () => {
-  const queryClient = useQueryClient();
+// export const useMarkAllNotificationsAsRead = () => {
+//   const queryClient = useQueryClient();
 
-  return useMutation(
-    async () => {
-      const { data } = await axios.post('/api/notifications/read-all');
-      return data;
-    },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['notifications']);
-        queryClient.invalidateQueries(['unreadNotifications']);
-      }
-    }
-  );
-};
+//   return useMutation(
+//     async () => {
+//       const { data } = await axios.post('/api/notifications/read-all');
+//       return data;
+//     },
+//     {
+//       onSuccess: () => {
+//         queryClient.invalidateQueries(['notifications']);
+//         queryClient.invalidateQueries(['unreadNotifications']);
+//       }
+//     }
+//   );
+// };
 
 
 
-// 📌 Supprimer une notification
-export const useDeleteNotification = () => {
-  const queryClient = useQueryClient();
-  return useMutation(
-    async (id) => {
-      await notificationsService.deleteNotification(id);
-    },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['notifications']);
-        queryClient.invalidateQueries(['unreadNotifications']);
-      }
-    }
-  );
-};
+// // 📌 Supprimer une notification
+// export const useDeleteNotification = () => {
+//   const queryClient = useQueryClient();
+//   return useMutation(
+//     async (id) => {
+//       await notificationsService.deleteNotification(id);
+//     },
+//     {
+//       onSuccess: () => {
+//         queryClient.invalidateQueries(['notifications']);
+//         queryClient.invalidateQueries(['unreadNotifications']);
+//       }
+//     }
+//   );
+// };
 
-// 📌 Supprimer toutes les notifications
-export const useClearAllNotifications = () => {
-  const queryClient = useQueryClient();
-  return useMutation(
-    async () => {
-      await notificationsService.clearAll();
-    },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['notifications']);
-        queryClient.invalidateQueries(['unreadNotifications']);
-      }
-    }
-  );
-};
+// // 📌 Supprimer toutes les notifications
+// export const useClearAllNotifications = () => {
+//   const queryClient = useQueryClient();
+//   return useMutation(
+//     async () => {
+//       await notificationsService.clearAll();
+//     },
+//     {
+//       onSuccess: () => {
+//         queryClient.invalidateQueries(['notifications']);
+//         queryClient.invalidateQueries(['unreadNotifications']);
+//       }
+//     }
+//   );
+// };
 
 
 // Vérifier le session_id dans le localStorage

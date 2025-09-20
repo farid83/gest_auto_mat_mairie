@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Demande;
 use App\Models\DemandeMateriel;
 use App\Models\User;
-use App\Notifications\NewDemandeNotification;
+// use App\Notifications\NewDemandeNotification;
 
 class DemandeController extends Controller
 {
@@ -110,11 +110,11 @@ public function store(Request $request)
     }
 
     // Notifications
-    if (in_array($user->role, $rolesSpeciaux)) {
-        $gestionnaire->notify(new NewDemandeNotification($demande, $user->name));
-    } else {
-        $directeur->notify(new NewDemandeNotification($demande, $user->name));
-    }
+    // if (in_array($user->role, $rolesSpeciaux)) {
+    //     $gestionnaire->notify(new NewDemandeNotification($demande, $user->name));
+    // } else {
+    //     $directeur->notify(new NewDemandeNotification($demande, $user->name));
+    // }
 
     $demande = Demande::with('materiels.materiel')->find($demande->id);
 
