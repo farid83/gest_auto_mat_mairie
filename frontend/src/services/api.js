@@ -1,11 +1,11 @@
 import axios from 'axios';
 import csrfClient from './csrfClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
 // Configuration Axios pour Laravel Sanctum
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: BACKEND_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -192,17 +192,17 @@ export const validationsService = {
 // Service livraisons
 export const deliveriesService = {
   async getDeliveries(params = {}) {
-    const response = await api.get('/deliveries', { params });
+    const response = await api.get('/api/livraisons', { params });
     return response.data;
   },
 
   async createDelivery(deliveryData) {
-    const response = await api.post('/deliveries', deliveryData);
+    const response = await api.post('/api/livraisons', deliveryData);
     return response.data;
   },
 
   async confirmReception(id, receptionData = {}) {
-    const response = await api.post(`/deliveries/${id}/receive`, receptionData);
+    const response = await api.post(`/api/livraisons/${id}/mark-delivered`, receptionData);
     return response.data;
   }
 };

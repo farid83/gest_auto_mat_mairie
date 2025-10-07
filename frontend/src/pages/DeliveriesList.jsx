@@ -5,30 +5,12 @@ import { Badge } from '../components/ui/badge';
 import { Table } from '../components/ui/table';
 import { Loader2, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
-const mockDeliveries = [
-	{
-		id: 1,
-		materials: [
-			{ name: 'Ordinateur portable', quantity: 2 },
-			{ name: 'Imprimante', quantity: 1 },
-		],
-		delivered_at: '2025-08-10',
-		status: 'En attente de confirmation',
-		confirmed: false,
-	},
-	{
-		id: 2,
-		materials: [{ name: 'Bureau', quantity: 3 }],
-		delivered_at: '2025-08-09',
-		status: 'Livré',
-		confirmed: true,
-	},
-];
+import { deliveriesService } from '../services/api';
 
 const statusColors = {
-	'En attente de confirmation': 'bg-orange-100 text-orange-800',
-	Livré: 'bg-green-100 text-green-800',
+	'en_cours': 'bg-orange-100 text-orange-800',
+	'livree': 'bg-green-100 text-green-800',
+	'annulee': 'bg-red-100 text-red-800',
 };
 
 const DeliveriesList = () => {
@@ -38,21 +20,33 @@ const DeliveriesList = () => {
 	const [selected, setSelected] = useState(null);
 
 	useEffect(() => {
-		setLoading(true);
-		// Remplace par un appel API réel si besoin
-		setTimeout(() => {
-			setDeliveries(mockDeliveries);
-			setLoading(false);
-		}, 500);
+		fetchDeliveries();
 	}, []);
 
-	const handleConfirm = (id) => {
-		setDeliveries((prev) =>
-			prev.map((d) =>
-				d.id === id ? { ...d, status: 'Livré', confirmed: true } : d
-			)
-		);
-		setSelected(null);
+	const fetchDeliveries = async () => {
+		setLoading(true);
+		try {
+			const response = await deliveriesService.getDeliveries();
+			setDeliveries(response.livraisons || []);
+		} catch (error) {
+			console.error('Erreur lors de la récupération des livraisons:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleConfirm = async (id) => {
+		try {
+			await deliveriesService.confirmReception(id);
+			setDeliveries((prev) =>
+				prev.map((d) =>
+					d.id === id ? { ...d, statut: 'livree', date_livraison: new Date().toISOString() } : d
+				)
+			);
+			setSelected(null);
+		} catch (error) {
+			console.error('Erreur lors de la confirmation de la livraison:', error);
+		}
 	};
 
 	return (
@@ -82,25 +76,25 @@ const DeliveriesList = () => {
 										<tr key={delivery.id}>
 											<td>
 												<ul className="space-y-1">
-													{delivery.materials.map((mat, idx) => (
+													{delivery.materiels?.map((mat, idx) => (
 														<li key={idx} className="flex gap-2 items-center">
-															<span className="font-medium">{mat.name}</span>
+															<span className="font-medium">{mat.pivot.quantite_livree} {mat.name}</span>
 															<span className="text-xs text-muted-foreground">
-																x{mat.quantity}
+																(demandé: {mat.pivot.quantite_demandee})
 															</span>
 														</li>
 													))}
 												</ul>
 											</td>
-											<td>{delivery.delivered_at}</td>
+											<td>{delivery.date_livraison ? new Date(delivery.date_livraison).toLocaleDateString('fr-FR') : '-'}</td>
 											<td>
 												<Badge
 													className={
-														statusColors[delivery.status] ||
+														statusColors[delivery.statut] ||
 														'bg-gray-100 text-gray-800'
 													}
 												>
-													{delivery.status}
+													{delivery.statut}
 												</Badge>
 											</td>
 											<td>
@@ -132,51 +126,45 @@ const DeliveriesList = () => {
 								<div>
 									<strong>Matériels :</strong>
 									<ul className="mt-1 space-y-1">
-										{selected.materials.map((mat, idx) => (
+										{selected.materiels?.map((mat, idx) => (
 											<li key={idx} className="flex gap-2 items-center">
-												<span className="font-medium">{mat.name}</span>
+												<span className="font-medium">{mat.pivot.quantite_livree} {mat.name}</span>
 												<span className="text-xs text-muted-foreground">
-													x{mat.quantity}
+													(demandé: {mat.pivot.quantite_demandee})
 												</span>
 											</li>
 										))}
 									</ul>
 								</div>
 								<div>
-									<strong>Date de livraison :</strong> {selected.delivered_at}
+									<strong>Date de livraison :</strong> {selected.date_livraison ? new Date(selected.date_livraison).toLocaleDateString('fr-FR') : '-'}
 								</div>
 								<div>
 									<strong>État :</strong>{' '}
 									<Badge
 										className={
-											statusColors[selected.status] ||
+											statusColors[selected.statut] ||
 											'bg-gray-100 text-gray-800'
 										}
 									>
-										{selected.status}
+										{selected.statut}
 									</Badge>
 								</div>
 								<div>
-									<strong>Confirmation :</strong>{' '}
-									{selected.confirmed ? (
-										<span className="text-green-600 flex items-center">
-											<CheckCircle className="w-4 h-4 mr-1" /> Envoi confirmé
-										</span>
-									) : (
-										<span className="text-orange-600 flex items-center">
-											<XCircle className="w-4 h-4 mr-1" /> Non confirmé
-										</span>
-									)}
+									<strong>Livreur :</strong> {selected.user?.name || '-'}
+								</div>
+								<div>
+									<strong>Demande :</strong> {selected.demande?.id || '-'}
 								</div>
 							</div>
-							{!selected.confirmed &&
+							{selected.statut !== 'livree' &&
 								['gestionnaire_stock', 'daaf', 'admin'].includes(user.role) && (
 									<div className="mt-4">
 										<Button
 											variant="default"
 											onClick={() => handleConfirm(selected.id)}
 										>
-											Confirmer l’envoi de la livraison
+											Marquer comme livrée
 										</Button>
 									</div>
 								)}

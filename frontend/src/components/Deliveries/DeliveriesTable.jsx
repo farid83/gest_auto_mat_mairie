@@ -1,21 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Table } from '../ui/table';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-
-const mockDeliveries = [
-  { id: 1, material: 'Ordinateur portable', quantity: 2, demandeur: 'Agent X', date: '2025-08-11', confirmed: false },
-];
+import { Loader2 } from 'lucide-react';
+import { deliveriesService } from '../../services/api';
 
 const DeliveriesTable = () => {
-  const [deliveries, setDeliveries] = useState(mockDeliveries);
+  const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleConfirm = id => {
-    setDeliveries(deliveries.map(d =>
-      d.id === id ? { ...d, confirmed: true } : d
-    ));
+  useEffect(() => {
+    fetchDeliveries();
+  }, []);
+
+  const fetchDeliveries = async () => {
+    setLoading(true);
+    try {
+      const response = await deliveriesService.getDeliveries();
+      setDeliveries(response.livraisons || []);
+    } catch (err) {
+      console.error('Erreur lors de la récupération des livraisons:', err);
+      setError('Impossible de charger les livraisons');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleConfirm = async (id) => {
+    try {
+      await deliveriesService.confirmReception(id);
+      setDeliveries(prev => prev.map(d =>
+        d.id === id ? { ...d, statut: 'livree', date_livraison: new Date().toISOString() } : d
+      ));
+    } catch (err) {
+      console.error('Erreur lors de la confirmation de la livraison:', err);
+    }
+  };
+
+  const statusColors = {
+    'en_cours': 'bg-orange-100 text-orange-800',
+    'livree': 'bg-green-100 text-green-800',
+    'annulee': 'bg-red-100 text-red-800',
+  };
+
+  if (loading) {
+    return (
+      <Card className="shadow-xl border-0">
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="shadow-xl border-0">
+        <CardContent className="text-center py-8 text-red-600">
+          {error}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="shadow-xl border-0">
@@ -23,40 +71,57 @@ const DeliveriesTable = () => {
         <CardTitle>Livraisons</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <thead>
-            <tr>
-              <th>Matériel</th>
-              <th>Quantité</th>
-              <th>Demandeur</th>
-              <th>Date</th>
-              <th>Confirmation</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {deliveries.map(d => (
-              <tr key={d.id}>
-                <td>{d.material}</td>
-                <td>{d.quantity}</td>
-                <td>{d.demandeur}</td>
-                <td>{d.date}</td>
-                <td>
-                  <Badge className={d.confirmed ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}>
-                    {d.confirmed ? 'Confirmée' : 'En attente'}
-                  </Badge>
-                </td>
-                <td>
-                  {!d.confirmed && (
-                    <Button size="sm" variant="success" onClick={() => handleConfirm(d.id)}>
-                      Confirmer livraison
-                    </Button>
-                  )}
-                </td>
+        {deliveries.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            Aucune livraison en cours
+          </div>
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <th>Matériels</th>
+                <th>Date de création</th>
+                <th>Statut</th>
+                <th>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {deliveries.map(d => (
+                <tr key={d.id}>
+                  <td>
+                    <ul className="space-y-1">
+                      {d.materiels?.map((mat, idx) => (
+                        <li key={idx} className="flex gap-2 items-center">
+                          <span className="font-medium">{mat.pivot.quantite_livree} {mat.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            (demandé: {mat.pivot.quantite_demandee})
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                  <td>{new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td>
+                    <Badge className={statusColors[d.statut] || 'bg-gray-100 text-gray-800'}>
+                      {d.statut}
+                    </Badge>
+                  </td>
+                  <td>
+                    {d.statut !== 'livree' && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleConfirm(d.id)}
+                      >
+                        Marquer comme livrée
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

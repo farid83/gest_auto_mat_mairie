@@ -25,4 +25,12 @@ class Materiel extends Model
             $materiel->quantite_disponible = $materiel->quantite_totale;
         });
     }
+
+    public function livraisons()
+{
+    return $this->belongsToMany(Livraison::class, 'livraison_materiel')
+                ->withPivot('quantite_demandee', 'quantite_livree')
+                ->withTimestamps();
+}
+
 }

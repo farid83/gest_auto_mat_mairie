@@ -59,6 +59,7 @@ class Demande extends Model
     public function materiels(): HasMany
     {
         return $this->hasMany(DemandeMateriel::class);
+        
     }
 
     // Une demande appartient à un utilisateur
@@ -100,6 +101,13 @@ protected $casts = [
     'date_validation_daaf' => 'datetime',
     'date_validation_secretaire' => 'datetime',
 ];
+
+// public function materiels()
+// {
+//     return $this->belongsToMany(Materiel::class, 'demande_materiel')
+//                 ->withPivot('quantite_demandee', 'quantite_validee', 'status', 'quantite_proposee_gestionnaire', 'quantite_validee_daaf')
+//                 ->withTimestamps();
+// }
 
 
 

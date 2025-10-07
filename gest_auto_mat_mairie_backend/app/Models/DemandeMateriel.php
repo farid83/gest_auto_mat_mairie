@@ -30,6 +30,8 @@ class DemandeMateriel extends Model
     {
         return $this->belongsTo(Materiel::class, 'materiel_id');
     }
-
+    
     
 }
+
+

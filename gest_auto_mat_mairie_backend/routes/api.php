@@ -62,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('demandes', DemandeController::class);
     // Route::apiResource('demande-materiels', DemandeMaterielController::class);
     Route::apiResource('livraisons', LivraisonController::class);
+    
+    // Routes supplémentaires pour les livraisons
+    Route::post('/livraisons/{id}/mark-delivered', [LivraisonController::class, 'markAsDelivered']);
     Route::apiResource('mouvements-stock', MouvementStockController::class);
 
     // Tableau de bord
@@ -137,6 +140,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/demande-materiels/{id}/materiels/{materielId}/secretaire-validate', [DemandeMaterielController::class, 'validateMaterielBySecretaire']);
     Route::post('/demande-materiels/{id}/stock-action', [DemandeMaterielController::class, 'validateRequest']);
     Route::post('/demande-materiels/{demandeId}/materiels/batch-validate', [DemandeMaterielController::class, 'batchValidateMateriels']);
+    
+    // Routes pour la validation finale par le secrétaire_exécutif
+    Route::post('/demande-materiels/{id}/secretaire-executif-validate', [DemandeMaterielController::class, 'validateBySecretaireExecutif']);
+    Route::get('/demande-materiels/ready-to-deliver', [DemandeMaterielController::class, 'getReadyToDeliver']);
 });
 
 
@@ -185,9 +192,8 @@ Route::middleware('auth:sanctum')->group(function () {
 //     });
 // });
 
-Route::middleware('auth:sanctum')->post('/demande-materiels/{demandeId}/materiels/batch-validate', [DemandeMaterielController::class, 'batchValidateMateriels']);
-// Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function () {
-//     Route::get('/directeur-only', function () {
-//         return response()->json(['message' => 'Accès autorisé au directeur uniquement']);
-//     });
-// });
+Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function () {
+    Route::get('/directeur-only', function () {
+        return response()->json(['message' => 'Accès autorisé au directeur uniquement']);
+    });
+});

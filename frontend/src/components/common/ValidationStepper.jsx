@@ -12,9 +12,9 @@ const ValidationStepper = ({
 }) => {
   const getStepIcon = (validation) => {
     switch (validation.status) {
-      case 'approuve':
+      case 'validee':
         return <Check className="w-4 h-4 text-white" />;
-      case 'rejete':
+      case 'rejetee':
         return <X className="w-4 h-4 text-white" />;
       case 'en_attente':
         return <Clock className="w-4 h-4 text-white" />;
@@ -25,9 +25,9 @@ const ValidationStepper = ({
 
   const getStepColor = (validation) => {
     switch (validation.status) {
-      case 'approuve':
+      case 'validee':
         return 'bg-green-500 border-green-500';
-      case 'rejete':
+      case 'rejetee':
         return 'bg-red-500 border-red-500';
       case 'en_attente':
         return 'bg-orange-500 border-orange-500';
@@ -42,11 +42,11 @@ const ValidationStepper = ({
     const currentValidation = validations[index];
     const nextValidation = validations[index + 1];
     
-    if (currentValidation.status === 'approuve' && nextValidation.status !== 'en_attente') {
+    if (currentValidation.status === 'validee' && nextValidation.status !== 'en_attente') {
       return 'bg-green-500';
-    } else if (currentValidation.status === 'approuve') {
+    } else if (currentValidation.status === 'validee') {
       return 'bg-orange-500';
-    } else if (currentValidation.status === 'rejete') {
+    } else if (currentValidation.status === 'rejetee') {
       return 'bg-red-500';
     } else {
       return 'bg-gray-300';
@@ -66,9 +66,9 @@ const ValidationStepper = ({
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'approuve':
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Approuvé</Badge>;
-      case 'rejete':
+      case 'validee':
+        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Validé</Badge>;
+      case 'rejetee':
         return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Rejeté</Badge>;
       case 'en_attente':
         return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">En attente</Badge>;
@@ -152,9 +152,9 @@ const ValidationStepper = ({
         <div className="mt-6 p-4 rounded-lg bg-muted/50">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Statut global:</span>
-            {currentStatus === 'approuvee' && (
+            {currentStatus === 'validee' && (
               <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                Demande approuvée
+                Demande validée
               </Badge>
             )}
             {currentStatus === 'rejetee' && (
