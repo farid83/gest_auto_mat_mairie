@@ -11,7 +11,7 @@ import {
   materialsService,
   requestsService,
   validationsService,
-  deliveriesService,
+  // deliveriesService,
   // notificationsService,
   dashboardService,
 
@@ -27,7 +27,7 @@ export const queryKeys = {
   requests: ['requests'],
   request: (id) => ['requests', id],
   validations: ['validations'],
-  deliveries: ['deliveries'],
+  // deliveries: ['deliveries'],
   // notifications: ['notifications'],
   dashboardStats: ['dashboard', 'stats'],
   // unreadNotifications: ['unreadNotifications'],
@@ -164,35 +164,35 @@ export const usePendingValidations = () => {
 };
 
 // Hooks pour les livraisons
-export const useDeliveries = (params = {}) => {
-  return useQuery({
-    queryKey: [...queryKeys.deliveries, params],
-    queryFn: () => deliveriesService.getDeliveries(params),
-    staleTime: 2 * 60 * 1000,
-  });
-};
+// export const useDeliveries = (params = {}) => {
+//   return useQuery({
+//     queryKey: [...queryKeys.deliveries, params],
+//     queryFn: () => deliveriesService.getDeliveries(params),
+//     staleTime: 2 * 60 * 1000,
+//   });
+// };
 
-export const useCreateDelivery = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: deliveriesService.createDelivery,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.deliveries });
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests });
-    }
-  });
-};
+// export const useCreateDelivery = () => {
+//   const queryClient = useQueryClient();
+//   return useMutation({
+//     mutationFn: deliveriesService.createDelivery,
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: queryKeys.deliveries });
+//       queryClient.invalidateQueries({ queryKey: queryKeys.requests });
+//     }
+//   });
+// };
 
-export const useConfirmReception = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...data }) => deliveriesService.confirmReception(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.deliveries });
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests });
-    }
-  });
-};
+// export const useConfirmReception = () => {
+//   const queryClient = useQueryClient();
+//   return useMutation({
+//     mutationFn: ({ id, ...data }) => deliveriesService.confirmReception(id, data),
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: queryKeys.deliveries });
+//       queryClient.invalidateQueries({ queryKey: queryKeys.requests });
+//     }
+//   });
+// };
 
 // Hooks pour les notifications
 // 📌 Récupérer toutes les notifications

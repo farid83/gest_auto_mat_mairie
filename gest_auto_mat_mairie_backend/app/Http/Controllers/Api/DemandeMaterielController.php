@@ -499,169 +499,190 @@ class DemandeMaterielController extends Controller
      * Validation finale par le secrétaire_exécutif
      * Cette méthode valide définitivement la demande et déduit le stock
      */
-    public function validateBySecretaireExecutif(Request $request, $id)
-    {
-        $user = $request->user();
-        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-
-        if ($user->role !== 'secretaire_executif') {
-            return response()->json(['message' => 'Rôle non autorisé'], 403);
-        }
-
-        $demande = Demande::with('materiels.materiel')->find($id);
-        if (!$demande) return response()->json(['message' => 'Demande non trouvée'], 404);
-
-        // Vérifier que la demande est bien en attente de validation secrétaire
-        if ($demande->status !== 'en_attente_secretaire') {
-            return response()->json(['message' => 'La demande n\'est pas en attente de validation secrétaire'], 400);
-        }
-
-        $validated = $request->validate([
-            'status' => 'required|in:validee,rejetee,validé,rejeté',
-            'commentaire' => 'nullable|string|max:500',
-        ]);
-
-        // Normaliser les statuts
-        $statusMap = [
-            'validé' => 'validee',
-            'rejeté' => 'rejetee'
-        ];
-        $validated['status'] = $statusMap[$validated['status']] ?? $validated['status'];
-
-        // Ajouter commentaire et date de validation
-        $commentField = 'commentaire_secretaire';
-        if (Schema::hasColumn('demandes', $commentField)) {
-            $demande->$commentField = $validated['commentaire'] ?? null;
-        }
-
-        $dateField = 'date_validation_secretaire';
-        if (Schema::hasColumn('demandes', $dateField)) {
-            $demande->$dateField = now();
-        }
-
-        if ($validated['status'] === 'validee') {
-            // La demande est validée définitivement
-            $demande->status = 'livraison';
-            
-            // Mettre à jour les quantités validées avec les quantités proposées par le DAAF
-            foreach ($demande->materiels as $dm) {
-                if ($dm->quantite_validee_daaf > 0) {
-                    $dm->quantite_validee = $dm->quantite_validee_daaf;
-                    $dm->status = 'validee';
-                } else {
-                    $dm->quantite_validee = 0;
-                    $dm->status = 'rejetee';
-                }
-                $dm->date_validation_secretaire = now();
-                $dm->save();
-            }
-
-            // Créer une livraison
-            $livraison = Livraison::create([
-                'demande_id' => $demande->id,
-                'user_id' => $user->id,
-                'statut' => 'en_cours',
-                'date_livraison' => null,
-                'commentaire' => $validated['commentaire'] ?? null,
-            ]);
-
-            // Associer les matériels à la livraison
-            foreach ($demande->materiels as $dm) {
-                if ($dm->quantite_validee > 0) {
-                    $livraison->materiels()->attach($dm->materiel_id, [
-                        'quantite_livree' => $dm->quantite_validee,
-                        'quantite_demandee' => $dm->quantite_demandee,
-                    ]);
-                }
-            }
-
-            // Déduire le stock
-            foreach ($demande->materiels as $dm) {
-                if ($dm->quantite_validee > 0) {
-                    $materiel = $dm->materiel;
-                    if ($materiel->quantite_disponible < $dm->quantite_validee) {
-                        return response()->json([
-                            'message' => 'Stock insuffisant pour le matériel: ' . $materiel->nom,
-                            'materiel_id' => $materiel->id
-                        ], 400);
-                    }
-
-                    // Créer un mouvement de stock (sortie)
-                    MouvementStock::create([
-                        'type' => 'Sortie',
-                        'materiel_id' => $materiel->id,
-                        'quantity' => $dm->quantite_validee,
-                        'user_id' => $user->id,
-                        'date' => now(),
-                    ]);
-
-                    // Mettre à jour le stock
-                    $materiel->quantite_disponible -= $dm->quantite_validee;
-                    $materiel->save();
-                }
-            }
-
-            // Notifier l'utilisateur si nécessaire
-            // $demandeur = $demande->user;
-            // if ($demandeur) {
-            //     $demandeur->notify(new LivraisonReadyNotification($demande, $user->name));
-            // }
-
-        } else {
-            // La demande est rejetée
-            $demande->status = 'rejetee';
-            foreach ($demande->materiels as $dm) {
-                $dm->quantite_validee = 0;
-                $dm->status = 'rejetee';
-                $dm->date_validation_secretaire = now();
-                $dm->save();
-            }
-        }
-
-        $demande->save();
-
-        return response()->json([
-            'message' => 'Demande traitée par secrétaire_exécutif',
-            'demande' => $demande->load('materiels.materiel'),
-            'livraison' => $validated['status'] === 'validee' ? $livraison->load('materiels') : null
-        ]);
-    }
+    
+  /**
+   * Validation finale par le secrétaire exécutif
+   * Cette méthode valide définitivement la demande et déduit le stock de manière sécurisée
+   */
+  public function validateBySecretaireExecutif($id)
+  {
+      DB::beginTransaction();
+      
+      try {
+          $demande = Demande::with('materiels.materiel')->findOrFail($id);
+          $user = request()->user();
+  
+          \Log::info("=== Début validation secrétaire pour demande {$id} par utilisateur {$user->id} ===");
+  
+          // Vérifier que la demande est dans le bon statut
+          if ($demande->status !== 'en_attente_secretaire') {
+              return response()->json([
+                  'message' => 'La demande n\'est pas dans le statut attendu pour la validation secrétaire'
+              ], 422);
+          }
+  
+          $materielsMisAJour = [];
+          $materielsRejetes = [];
+  
+          foreach ($demande->materiels as $dm) {
+              $materiel = $dm->materiel;
+  
+              if (!$materiel) {
+                  \Log::warning("⚠️ Pas de matériel lié pour DemandeMateriel ID {$dm->id}");
+                  continue;
+              }
+  
+              // Quantité validée par la DAAF
+              $quantiteValidee = $dm->quantite_validee_daaf ?? 0;
+  
+              if ($quantiteValidee > 0) {
+                  // Vérifier le stock disponible avec une requête sécurisée
+                  $materielActualise = Materiel::where('id', $materiel->id)
+                      ->lockForUpdate() // Verrouiller le matériel pour éviter les conflits
+                      ->first();
+  
+                  if (!$materielActualise) {
+                      throw new \Exception("Matériel {$materiel->nom} introuvable lors de la vérification du stock");
+                  }
+  
+                  if ($materielActualise->quantite_disponible >= $quantiteValidee) {
+                      // Déduction sécurisée du stock
+                      $nouveauStock = $materielActualise->quantite_disponible - $quantiteValidee;
+                      
+                      $miseAJourStock = Materiel::where('id', $materielActualise->id)
+                          ->update(['quantite_disponible' => $nouveauStock]);
+  
+                      if (!$miseAJourStock) {
+                          throw new \Exception("Échec de la mise à jour du stock pour {$materiel->nom}");
+                      }
+  
+                      // Mettre à jour le DemandeMateriel
+                      $dm->quantite_validee = $quantiteValidee;
+                      $dm->status = 'validee';
+                      $dm->date_validation_secretaire = now();
+  
+                      if (!$dm->save()) {
+                          throw new \Exception("Échec de la sauvegarde du DemandeMateriel ID {$dm->id}");
+                      }
+  
+                      $materielsMisAJour[] = [
+                          'materiel_id' => $materiel->id,
+                          'nom' => $materiel->nom,
+                          'quantite_validee' => $quantiteValidee,
+                          'ancien_stock' => $materielActualise->quantite_disponible,
+                          'nouveau_stock' => $nouveauStock
+                      ];
+  
+                      \Log::info("✅ Stock mis à jour pour {$materiel->nom} : {$materielActualise->quantite_disponible} → {$nouveauStock}");
+                  } else {
+                      // Stock insuffisant
+                      $dm->quantite_validee = 0;
+                      $dm->status = 'rejetee';
+                      $dm->date_validation_secretaire = now();
+  
+                      if (!$dm->save()) {
+                          throw new \Exception("Échec de la sauvegarde du DemandeMateriel rejeté ID {$dm->id}");
+                      }
+  
+                      $materielsRejetes[] = [
+                          'materiel_id' => $materiel->id,
+                          'nom' => $materiel->nom,
+                          'quantite_demandee' => $quantiteValidee,
+                          'stock_disponible' => $materielActualise->quantite_disponible
+                      ];
+  
+                      \Log::warning("❌ Stock insuffisant pour {$materiel->nom} : demandé {$quantiteValidee}, disponible {$materielActualise->quantite_disponible}");
+                  }
+              } else {
+                  // Quantité non validée par DAAF
+                  $dm->quantite_validee = 0;
+                  $dm->status = 'rejetee';
+                  $dm->date_validation_secretaire = now();
+  
+                  if (!$dm->save()) {
+                      throw new \Exception("Échec de la sauvegarde du DemandeMateriel rejeté ID {$dm->id}");
+                  }
+  
+                  $materielsRejetes[] = [
+                      'materiel_id' => $materiel->id,
+                      'nom' => $materiel->nom,
+                      'quantite_demandee' => $quantiteValidee,
+                      'raison' => 'Quantité non validée par DAAF'
+                  ];
+  
+                  \Log::warning("❌ Quantité non validée par DAAF pour {$materiel->nom}");
+              }
+          }
+  
+          // Mettre à jour la demande avec le statut final et l'ID du secrétaire
+          $demande->status = 'validee_finale';
+          $demande->secretaire_id = $user->id;
+          $demande->date_validation_secretaire = now();
+  
+          if (!$demande->save()) {
+              throw new \Exception("Échec de la mise à jour de la demande ID {$id}");
+          }
+  
+          DB::commit();
+  
+          return response()->json([
+              'message' => 'Demande validée par le secrétaire exécutif avec succès',
+              'data' => $demande->load('materiels.materiel'),
+              'statistiques' => [
+                  'materiels_valides' => count($materielsMisAJour),
+                  'materiels_rejetes' => count($materielsRejetes),
+                  'details_materiels_valides' => $materielsMisAJour,
+                  'details_materiels_rejetes' => $materielsRejetes
+              ]
+          ]);
+  
+      } catch (\Exception $e) {
+          DB::rollBack();
+          
+          \Log::error("❌ Erreur lors de la validation secrétaire pour demande {$id}: " . $e->getMessage());
+          
+          return response()->json([
+              'message' => 'Erreur lors de la validation par le secrétaire exécutif',
+              'error' => $e->getMessage()
+          ], 500);
+      }
+  }
 
     /**
      * Récupérer les demandes prêtes à être livrées
      */
-    public function getReadyToDeliver(Request $request)
-    {
-        $user = $request->user();
-        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+    // public function getReadyToDeliver(Request $request)
+    // {
+    //     $user = $request->user();
+    //     if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
-        $demandes = Demande::with(['materiels.materiel', 'user'])
-            ->where('status', 'livraison')
-            ->orderBy('created_at', 'desc')
-            ->get();
+    //     $demandes = Demande::with(['materiels.materiel', 'user'])
+    //         ->where('status', 'livraison')
+    //         ->orderBy('created_at', 'desc')
+    //         ->get();
 
-        $demandes = $demandes->map(function ($demande) {
-            return [
-                'id' => $demande->id,
-                'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
-                'created_at' => $demande->created_at,
-                'status' => $demande->status,
-                'materials' => $demande->materiels->map(function ($dm) {
-                    return [
-                        'id' => $dm->id,
-                        'materiel_id' => $dm->materiel_id,
-                        'name' => $dm->materiel->nom ?? 'Nom indisponible',
-                        'quantity' => $dm->quantite_validee ?? 0,
-                        'justification' => $dm->justification ?? 'Aucune justification',
-                    ];
-                })
-            ];
-        });
+    //     $demandes = $demandes->map(function ($demande) {
+    //         return [
+    //             'id' => $demande->id,
+    //             'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
+    //             'created_at' => $demande->created_at,
+    //             'status' => $demande->status,
+    //             'materials' => $demande->materiels->map(function ($dm) {
+    //                 return [
+    //                     'id' => $dm->id,
+    //                     'materiel_id' => $dm->materiel_id,
+    //                     'name' => $dm->materiel->nom ?? 'Nom indisponible',
+    //                     'quantity' => $dm->quantite_validee ?? 0,
+    //                     'justification' => $dm->justification ?? 'Aucune justification',
+    //                 ];
+    //             })
+    //         ];
+    //     });
 
-        return response()->json([
-            'message' => 'Liste des demandes prêtes à être livrées',
-            'demandes' => $demandes
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => 'Liste des demandes prêtes à être livrées',
+    //         'demandes' => $demandes
+    //     ]);
+    // }
 
 }

@@ -10,7 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RequestsNew from './pages/RequestsNew';
 import RequestsList from './pages/RequestsList';
-import DeliveriesList from './pages/DeliveriesList';
+// import DeliveriesList from './pages/DeliveriesList';
 import RequestsValidation from './pages/RequestsValidation';
 import MaterialsManagement from './pages/MaterialsManagement';
 import UsersManagement from './pages/UsersManagement';
@@ -39,7 +39,7 @@ function App() {
                 <Route path="requests/new" element={<RequestsNew />} />
                 <Route path="requests" element={<RequestsList />} />
                 <Route path="validations" element={<RequestsValidation />} />
-                <Route path="deliveries" element={<DeliveriesList />} />
+                {/* <Route path="deliveries" element={<DeliveriesList />} /> */}
                 <Route path="materials" element={<MaterialsManagement />} />
                 <Route path="users" element={<UsersManagement />} />
                 <Route path="settings" element={<AdminSettings />} />

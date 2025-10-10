@@ -43,7 +43,7 @@ console.log("LocalStorage ->",
     { icon: Package, label: 'Matériels', path: '/materials', roles: ['gestionnaire_stock','admin','secretaire_executif','daaf'] },
     { icon: FileText, label: 'Demandes', path: '/requests', roles: ['user','directeur','gestionnaire_stock','daaf','secretaire_executif','admin'] },
     { icon: CheckSquare, label: 'Validations', path: '/validations', roles: ['directeur','gestionnaire_stock','daaf','secretaire_executif',] },
-    { icon: Truck, label: 'Livraisons', path: '/deliveries', roles: ['gestionnaire_stock','daaf','admin'] },
+    // { icon: Truck, label: 'Livraisons', path: '/deliveries', roles: ['gestionnaire_stock','daaf','admin'] },
     { icon: Users, label: 'Utilisateurs', path: '/users', roles: ['admin'] },
     { icon: Settings, label: 'Configuration', path: '/settings', roles: ['admin'] }
   ];

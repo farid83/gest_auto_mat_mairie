@@ -231,7 +231,7 @@ export const AuthProvider = ({ children }) => {
         materials: ['read', 'create', 'update', 'delete'],
         requests: ['read', 'create', 'update', 'delete'],
         validations: ['read', 'create'],
-        deliveries: ['read', 'create', 'update'],
+        // deliveries: ['read', 'create', 'update'],
         settings: ['read', 'update']
       },
       secretaire_executif: {
@@ -239,7 +239,7 @@ export const AuthProvider = ({ children }) => {
         materials: ['read'],
         requests: ['read', 'create'],
         validations: ['read', 'create'],
-        deliveries: ['read'],
+        // deliveries: ['read'],
         settings: []
       },
       daaf: {
@@ -247,7 +247,7 @@ export const AuthProvider = ({ children }) => {
         materials: ['read'],
         requests: ['read', 'create'],
         validations: ['read', 'create'],
-        deliveries: ['read'],
+        // deliveries: ['read'],
         settings: []
       },
       directeur: {
@@ -255,7 +255,7 @@ export const AuthProvider = ({ children }) => {
         materials: ['read'],
         requests: ['read', 'create'],
         validations: ['read', 'create'],
-        deliveries: ['read'],
+        // deliveries: ['read'],
         settings: []
       },
       gestionnaire_stock: {
@@ -263,7 +263,7 @@ export const AuthProvider = ({ children }) => {
         materials: ['read', 'create', 'update'],
         requests: ['read'],
         validations: ['read'],
-        deliveries: ['read', 'create', 'update'],
+        // deliveries: ['read', 'create', 'update'],
         settings: []
       },
       agent: {
@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }) => {
         materials: ['read'],
         requests: ['read', 'create'],
         validations: ['read'],
-        deliveries: ['read'],
+        // deliveries: ['read'],
         settings: []
       }
     };

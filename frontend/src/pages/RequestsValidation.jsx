@@ -53,11 +53,35 @@ const RequestsValidation = () => {
 const handleBatchAction = async (demandeId, materielIds, action) => {
   setLoading(true);
   try {
-    // Prépare les quantités à envoyer
+    // Si on est secrétaire exécutif et que l'on valide → appeler l'endpoint spécifique
+    if (role === 'secretaire_executif' && action === 'validé') {
+      const body = { statut: 'validee_finale' };
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/secretaire-executif-validate`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) throw new Error('Erreur lors de la validation par le secrétaire exécutif');
+      await response.json();
+
+      toast({ title: 'Succès', description: 'Demande validée et stock mis à jour' });
+      setSelectedMateriels([]);
+      setQuantities({});
+      await fetchRequests();
+      return;
+    }
+
+    // Prépare les quantités à envoyer (comportement inchangé pour les autres rôles)
     let quantites = {};
     if (['gestionnaire_stock', 'daaf'].includes(role) && action === 'validé') {
       materielIds.forEach(id => {
-        // On récupère la quantité du champ si modifiée, sinon la quantité demandée
         const requested = selected.materials.find(m => m.materiel_id === id)?.quantity ?? 1;
         const qState = quantities[id];
         const parsed = (qState !== undefined && qState !== null && qState !== '') 

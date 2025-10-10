@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\MaterielController;
 use App\Http\Controllers\Api\DirectionController;
 use App\Http\Controllers\Api\DemandeController;
 use App\Http\Controllers\Api\DemandeMaterielController;
-use App\Http\Controllers\Api\LivraisonController;
+// use App\Http\Controllers\Api\LivraisonController;
 use App\Http\Controllers\Api\MouvementStockController;
 use App\Http\Controllers\Api\PingController;
 use App\Http\Controllers\Auth\LoginController;
@@ -61,10 +61,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('directions', DirectionController::class);
     Route::apiResource('demandes', DemandeController::class);
     // Route::apiResource('demande-materiels', DemandeMaterielController::class);
-    Route::apiResource('livraisons', LivraisonController::class);
+    // Route::apiResource('livraisons', LivraisonController::class);
     
     // Routes supplémentaires pour les livraisons
-    Route::post('/livraisons/{id}/mark-delivered', [LivraisonController::class, 'markAsDelivered']);
+    // Route::post('/livraisons/{id}/mark-delivered', [LivraisonController::class, 'markAsDelivered']);
     Route::apiResource('mouvements-stock', MouvementStockController::class);
 
     // Tableau de bord
@@ -143,7 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Routes pour la validation finale par le secrétaire_exécutif
     Route::post('/demande-materiels/{id}/secretaire-executif-validate', [DemandeMaterielController::class, 'validateBySecretaireExecutif']);
-    Route::get('/demande-materiels/ready-to-deliver', [DemandeMaterielController::class, 'getReadyToDeliver']);
+    // Route::get('/demande-materiels/ready-to-deliver', [DemandeMaterielController::class, 'getReadyToDeliver']);
 });
 
 

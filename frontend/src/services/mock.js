@@ -295,26 +295,26 @@ export const mockNotifications = [
   }
 ];
 
-export const mockDeliveries = [
-  {
-    id: 1,
-    request_id: 2,
-    request_number: "DEM2024-002",
-    delivery_number: "LIV2024-001",
-    status: "preparee",
-    prepared_by: "Pierre Akoka",
-    prepared_at: "2024-07-12T10:00:00Z",
-    items: [
-      {
-        material_id: 3,
-        material_name: "Chaise de bureau",
-        quantity_requested: 3,
-        quantity_delivered: 3,
-        unit_price: 75000
-      }
-    ]
-  }
-];
+// export const mockDeliveries = [
+//   {
+//     id: 1,
+//     request_id: 2,
+//     request_number: "DEM2024-002",
+//     delivery_number: "LIV2024-001",
+//     status: "preparee",
+//     prepared_by: "Pierre Akoka",
+//     prepared_at: "2024-07-12T10:00:00Z",
+//     items: [
+//       {
+//         material_id: 3,
+//         material_name: "Chaise de bureau",
+//         quantity_requested: 3,
+//         quantity_delivered: 3,
+//         unit_price: 75000
+//       }
+//     ]
+//   }
+// ];
 
 // Fonctions utilitaires pour simuler les appels API
 export const mockApiDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));

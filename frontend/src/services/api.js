@@ -190,22 +190,22 @@ export const validationsService = {
 };
 
 // Service livraisons
-export const deliveriesService = {
-  async getDeliveries(params = {}) {
-    const response = await api.get('/api/livraisons', { params });
-    return response.data;
-  },
+// export const deliveriesService = {
+//   // async getDeliveries(params = {}) {
+//   //   const response = await api.get('/api/livraisons', { params });
+//   //   return response.data;
+//   // },
 
-  async createDelivery(deliveryData) {
-    const response = await api.post('/api/livraisons', deliveryData);
-    return response.data;
-  },
+//   async createDelivery(deliveryData) {
+//     const response = await api.post('/api/livraisons', deliveryData);
+//     return response.data;
+//   },
 
-  async confirmReception(id, receptionData = {}) {
-    const response = await api.post(`/api/livraisons/${id}/mark-delivered`, receptionData);
-    return response.data;
-  }
-};
+//   async confirmReception(id, receptionData = {}) {
+//     const response = await api.post(`/api/livraisons/${id}/mark-delivered`, receptionData);
+//     return response.data;
+//   }
+// };
 
 // Service notifications
 // export const notificationsService = {
