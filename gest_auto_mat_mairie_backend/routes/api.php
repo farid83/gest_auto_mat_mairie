@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\MaterielController;
 use App\Http\Controllers\Api\DirectionController;
+use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\DemandeController;
 use App\Http\Controllers\Api\DemandeMaterielController;
 // use App\Http\Controllers\Api\LivraisonController;
@@ -59,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
     // Route::apiResource('materiels', MaterielController::class);
     Route::apiResource('directions', DirectionController::class);
+    Route::apiResource('services', ServiceController::class);
     Route::apiResource('demandes', DemandeController::class);
     // Route::apiResource('demande-materiels', DemandeMaterielController::class);
     // Route::apiResource('livraisons', LivraisonController::class);
@@ -71,11 +73,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('dashboard/stats', [DashboardController::class, 'getStats']);
 });
 
+// Routes utilisateurs supplémentaires
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::get('/users/roles', [UserController::class, 'getRoles']);
+    Route::get('/users/stats', [UserController::class, 'getStats']);
+    // Route dédiée pour mise à jour du mot de passe (POST ou PUT)
+    Route::post('/users/{id}/password', [UserController::class, 'updatePassword']);
 });
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
@@ -196,4 +204,9 @@ Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function
     Route::get('/directeur-only', function () {
         return response()->json(['message' => 'Accès autorisé au directeur uniquement']);
     });
+});
+
+// Routes supplémentaires pour les services
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/services/direction/{directionId}', [ServiceController::class, 'getByDirection']);
 });

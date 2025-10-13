@@ -7,10 +7,13 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { useAuth } from '../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../hooks/useApi';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +34,7 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Nettoyer l'erreur lors de la saisie
     if (error) {
       clearError();
@@ -39,11 +42,16 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
+
     e.preventDefault();
     setIsSubmitting(true);
     const result = await login(formData.email, formData.password);
     setIsSubmitting(false);
     if (result.success) {
+      // 🧹 Nettoyer le cache du Dashboard avant redirection
+      queryClient.removeQueries({ queryKey: queryKeys.dashboardStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
+
       navigate('/dashboard');
     }
   };
@@ -53,17 +61,20 @@ const Login = () => {
     { email: 'marie.koffi@example.com', role: 'CM', password: 'password123' },
     { email: 'pierre.akoka@example.com', role: 'Secretaire Executif', password: 'password123' },
     { email: 'fatou.tomiyo@example.com', role: 'DAAF', password: 'password123' },
-     { email: 'ahmed.soumanou@example.com', role: 'Collaborateur DSI', password: 'password123' },
+    { email: 'ahmed.soumanou@example.com', role: 'Collaborateur DSI', password: 'password123' },
     { email: 'admin@example.com', role: 'admin', password: 'secret' }
   ];
 
   const handleQuickLogin = async (email) => {
     setFormData({ email, password: 'password123' });
     setIsSubmitting(true);
-    
+
     try {
       const result = await login(email, 'password123');
       if (result.success) {
+
+        queryClient.removeQueries({ queryKey: queryKeys.dashboardStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
         navigate('/dashboard');
       }
     } finally {
@@ -104,7 +115,7 @@ const Login = () => {
               Connectez-vous pour accéder au système
             </CardDescription>
           </CardHeader>
-          
+
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {error && (
@@ -123,7 +134,7 @@ const Login = () => {
                   type="email"
                   placeholder="votre@email.com"
                   value={formData.email}
-                  onChange={handleChange} 
+                  onChange={handleChange}
                   required
                   className="h-11"
                 />
@@ -156,9 +167,9 @@ const Login = () => {
             </CardContent>
 
             <CardFooter>
-              <Button 
-                type="submit" 
-                className="w-full h-11" 
+              <Button
+                type="submit"
+                className="w-full h-11"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

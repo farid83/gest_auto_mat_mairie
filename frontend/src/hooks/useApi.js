@@ -4,6 +4,8 @@ import {
   useQueryClient,
   useInfiniteQuery 
 } from '@tanstack/react-query';
+
+
 import { 
   authService,
   usersService, 
@@ -34,6 +36,9 @@ export const queryKeys = {
 };
 
 // Hooks pour les utilisateurs
+
+
+
 export const useUsers = (params = {}) => {
   return useQuery({
     queryKey: [...queryKeys.users, params],
@@ -274,11 +279,29 @@ export const usePendingValidations = () => {
 
 // Hook pour les statistiques du dashboard
 export const useDashboardStats = () => {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: queryKeys.dashboardStats,
     queryFn: dashboardService.getStats,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // Auto-refetch toutes les 5 minutes
+
+    // ✅ Toujours considérer les données comme périmées
+    staleTime: 0,
+
+    // ✅ Forcer la mise à jour à chaque affichage de la page
+    refetchOnMount: 'always',
+
+    // ✅ Si l’utilisateur revient sur l’onglet du navigateur
+    refetchOnWindowFocus: true,
+
+    // ✅ En option : mise à jour automatique toutes les 60s
+    refetchInterval: 60000, // 1 minute
+
+    // ✅ Nettoyer les données précédentes à la déconnexion si besoin
+    onError: (error) => {
+      console.error("Erreur lors du chargement des stats:", error);
+      queryClient.removeQueries(queryKeys.dashboardStats);
+    },
   });
 };
 

@@ -4,6 +4,8 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
+import { Filter } from 'lucide-react';
+
 
 const RequestsValidation = () => {
   const [requests, setRequests] = useState([]);
@@ -13,6 +15,8 @@ const RequestsValidation = () => {
   const [selectedMateriels, setSelectedMateriels] = useState([]);
   const [quantities, setQuantities] = useState({});
   const { toast } = useToast();
+
+  const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
     fetchRequests();
@@ -26,7 +30,19 @@ const RequestsValidation = () => {
       });
       if (!response.ok) throw new Error('Erreur lors de la récupération des demandes');
       const data = await response.json();
-      setRequests(data.demandes || []);
+
+      // Trier par date par défaut
+   // Trier par date par défaut
+const sortedDemandes = [...(data.demandes || [])].sort((a, b) =>
+  sortOrder === 'asc'
+    ? new Date(a.created_at) - new Date(b.created_at)
+    : new Date(b.created_at) - new Date(a.created_at)
+);
+
+setRequests(sortedDemandes);
+      // Déterminer le rôle de l'utilisateur à partir de la première demande (si disponible)
+
+
 
       if (data.demandes?.length) {
         const statusRoleMap = {
@@ -45,19 +61,72 @@ const RequestsValidation = () => {
     }
   };
 
+  const handleSort = () => {
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOrder(newOrder);
+    setRequests(prev =>
+      [...prev].sort((a, b) =>
+        newOrder === 'asc'
+          ? new Date(a.created_at) - new Date(b.created_at)
+          : new Date(b.created_at) - new Date(a.created_at)
+      )
+    );
+  };
+
   const getMatStatus = (mat) => {
     if (mat.quantite_validee === null || mat.quantite_validee === undefined) return 'en_attente';
     return mat.quantite_validee > 0 ? 'validee' : 'rejetee';
   };
 
-const handleBatchAction = async (demandeId, materielIds, action) => {
-  setLoading(true);
-  try {
-    // Si on est secrétaire exécutif et que l'on valide → appeler l'endpoint spécifique
-    if (role === 'secretaire_executif' && action === 'validé') {
-      const body = { statut: 'validee_finale' };
+  const handleBatchAction = async (demandeId, materielIds, action) => {
+    setLoading(true);
+    try {
+      // Si on est secrétaire exécutif et que l'on valide → appeler l'endpoint spécifique
+      if (role === 'secretaire_executif' && action === 'validé') {
+        const body = { statut: 'validee_finale' };
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/secretaire-executif-validate`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+            body: JSON.stringify(body),
+          }
+        );
+
+        if (!response.ok) throw new Error('Erreur lors de la validation par le secrétaire exécutif');
+        await response.json();
+
+        toast({ title: 'Succès', description: 'Demande validée et stock mis à jour' });
+        setSelectedMateriels([]);
+        setQuantities({});
+        await fetchRequests();
+        return;
+      }
+
+      // Prépare les quantités à envoyer (comportement inchangé pour les autres rôles)
+      let quantites = {};
+      if (['gestionnaire_stock', 'daaf'].includes(role) && action === 'validé') {
+        materielIds.forEach(id => {
+          const requested = selected.materials.find(m => m.materiel_id === id)?.quantity ?? 1;
+          const qState = quantities[id];
+          const parsed = (qState !== undefined && qState !== null && qState !== '')
+            ? parseInt(qState, 10)
+            : requested;
+          quantites[id] = Number.isNaN(parsed) ? requested : parsed;
+        });
+      }
+
+      const body = {
+        materiel_ids: materielIds,
+        status: action === 'validé' ? 'validee' : 'rejetee',
+        quantites: quantites,
+      };
+
       const response = await fetch(
-        `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/secretaire-executif-validate`,
+        `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/materiels/batch-validate`,
         {
           method: 'POST',
           headers: {
@@ -68,65 +137,24 @@ const handleBatchAction = async (demandeId, materielIds, action) => {
         }
       );
 
-      if (!response.ok) throw new Error('Erreur lors de la validation par le secrétaire exécutif');
+      if (!response.ok) throw new Error('Erreur sur la validation par lot');
       await response.json();
 
-      toast({ title: 'Succès', description: 'Demande validée et stock mis à jour' });
+      toast({ title: 'Succès', description: `Sélection ${action} avec succès` });
       setSelectedMateriels([]);
       setQuantities({});
-      await fetchRequests();
-      return;
-    }
-
-    // Prépare les quantités à envoyer (comportement inchangé pour les autres rôles)
-    let quantites = {};
-    if (['gestionnaire_stock', 'daaf'].includes(role) && action === 'validé') {
-      materielIds.forEach(id => {
-        const requested = selected.materials.find(m => m.materiel_id === id)?.quantity ?? 1;
-        const qState = quantities[id];
-        const parsed = (qState !== undefined && qState !== null && qState !== '') 
-          ? parseInt(qState, 10) 
-          : requested;
-        quantites[id] = Number.isNaN(parsed) ? requested : parsed;
+      fetchRequests();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Erreur',
+        description: "Impossible d'effectuer l'action",
+        variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
-
-    const body = {
-      materiel_ids: materielIds,
-      status: action === 'validé' ? 'validee' : 'rejetee',
-      quantites: quantites,
-    };
-
-    const response = await fetch(
-      `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/materiels/batch-validate`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(body),
-      }
-    );
-
-    if (!response.ok) throw new Error('Erreur sur la validation par lot');
-    await response.json();
-
-    toast({ title: 'Succès', description: `Sélection ${action} avec succès` });
-    setSelectedMateriels([]);
-    setQuantities({});
-    fetchRequests();
-  } catch (error) {
-    console.error(error);
-    toast({
-      title: 'Erreur',
-      description: "Impossible d'effectuer l'action",
-      variant: 'destructive',
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const statusColors = {
     validee: 'bg-green-100 text-green-800',
@@ -150,9 +178,22 @@ const handleBatchAction = async (demandeId, materielIds, action) => {
         {/* Liste des demandes */}
         <Card className="shadow-xl border-0">
           <CardHeader>
-            <CardTitle>Demandes à valider</CardTitle>
-            <CardDescription>{roleDescriptions[role]}</CardDescription>
+            <CardTitle className="flex items-center justify-between">
+              <span>
+                Demandes à valider
+                <span className="block text-sm text-muted-foreground">{roleDescriptions[role]}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSort('created_at')}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Trier par date {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
             {loading ? (
               <div className="flex justify-center py-8">

@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Table } from '../ui/table';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import UserForm from './UserForm';
-
-const mockUsers = [
-	{ id: 3, name: 'Jean Dupont', email: 'jean.dupont@example.com', role: 'user', active: true },
-	{ id: 2, name: 'Marie Koffi', email: 'marie.koffi@adjarra.bj', role: 'directeur', active: true },
-	{ id: 3, name: 'Pierre Akoka', email: 'pierre.akoka@adjarra.bj', role: 'gestionnaire_stock', active: true },
-	{ id: 4, name: 'Fatou Tomiyo', email: 'fatou.tomiyo@adjarra.bj', role: 'daaf', active: false },
-	{ id: 5, name: 'Ahmed Soumanou', email: 'ahmed.soumanou@adjarra.bj', role: 'secretaire_executif', active: true },
-];
+import { usersService } from '../../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const roleLabels = {
 	agent: 'Agent',
@@ -23,9 +19,46 @@ const roleLabels = {
 };
 
 const UsersTable = () => {
-	const [users, setUsers] = useState(mockUsers);
+	const [searchTerm, setSearchTerm] = useState('');
+	const [roleFilter, setRoleFilter] = useState(undefined);
+	const [activeFilter, setActiveFilter] = useState(undefined);
 	const [formOpen, setFormOpen] = useState(false);
 	const [editUser, setEditUser] = useState(null);
+
+	const queryClient = useQueryClient();
+
+	// Fetch users
+	const { data: users, isLoading, error } = useQuery({
+		queryKey: ['users', { search: searchTerm, role: roleFilter, active: activeFilter }],
+		queryFn: () => usersService.getUsers({ search: searchTerm, role: roleFilter, active: activeFilter }),
+		retry: false,
+	});
+
+	// Create user mutation
+	const createUserMutation = useMutation({
+		mutationFn: usersService.createUser,
+		onSuccess: () => {
+			queryClient.invalidateQueries(['users']);
+			setFormOpen(false);
+		},
+	});
+
+	// Update user mutation
+	const updateUserMutation = useMutation({
+		mutationFn: ({ id, data }) => usersService.updateUser(id, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries(['users']);
+			setFormOpen(false);
+		},
+	});
+
+	// Delete user mutation
+	const deleteUserMutation = useMutation({
+		mutationFn: usersService.deleteUser,
+		onSuccess: () => {
+			queryClient.invalidateQueries(['users']);
+		},
+	});
 
 	const handleAdd = () => {
 		setEditUser(null);
@@ -38,9 +71,38 @@ const UsersTable = () => {
 	};
 
 	const handleSave = (userData) => {
-		// Ajoute ou modifie l'utilisateur dans ton state ou via API
-		setFormOpen(false);
+		if (editUser) {
+			updateUserMutation.mutate({ id: editUser.id, data: userData });
+		} else {
+			createUserMutation.mutate(userData);
+		}
 	};
+
+	const handleDelete = (userId) => {
+		if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+			deleteUserMutation.mutate(userId);
+		}
+	};
+
+	const handleSearch = (e) => {
+		setSearchTerm(e.target.value);
+	};
+
+	const handleRoleFilter = (value) => {
+		setRoleFilter(value);
+	};
+
+	const handleActiveFilter = (value) => {
+		setActiveFilter(value);
+	};
+
+	if (isLoading) return <div>Chargement...</div>;
+	if (error) {
+		if (error.response?.status === 401) {
+			return <div>Erreur d'authentification. Veuillez vous reconnecter.</div>;
+		}
+		return <div>Erreur: {error.message}</div>;
+	}
 
 	return (
 		<Card className="shadow-xl border-0">
@@ -53,6 +115,36 @@ const UsersTable = () => {
 					<Button size="sm" variant="outline">
 						Exporter
 					</Button>
+				</div>
+				<div className="flex gap-2 mt-4">
+					<Input
+						placeholder="Rechercher..."
+						value={searchTerm}
+						onChange={handleSearch}
+						className="max-w-sm"
+					/>
+					<Select value={roleFilter} onValueChange={handleRoleFilter}>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Rôle" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="agent">Agent</SelectItem>
+							<SelectItem value="directeur">Directeur</SelectItem>
+							<SelectItem value="gestionnaire_stock">Gestionnaire</SelectItem>
+							<SelectItem value="daaf">DAAF</SelectItem>
+							<SelectItem value="secretaire_executif">Secrétaire exécutif</SelectItem>
+							<SelectItem value="admin">Admin</SelectItem>
+						</SelectContent>
+					</Select>
+					<Select value={activeFilter} onValueChange={handleActiveFilter}>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Statut" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="true">Actif</SelectItem>
+							<SelectItem value="false">Inactif</SelectItem>
+						</SelectContent>
+					</Select>
 				</div>
 			</CardHeader>
 			<CardContent>
@@ -67,7 +159,7 @@ const UsersTable = () => {
 						</tr>
 					</thead>
 					<tbody>
-						{users.map((u) => (
+						{users?.data?.map((u) => (
 							<tr key={u.id}>
 								<td>{u.name}</td>
 								<td>{u.email}</td>
@@ -95,8 +187,13 @@ const UsersTable = () => {
 									>
 										Modifier
 									</Button>
-									<Button size="sm" variant="destructive">
-										Supprimer
+									<Button
+										size="sm"
+										variant="destructive"
+										onClick={() => handleDelete(u.id)}
+										disabled={deleteUserMutation.isPending}
+									>
+										{deleteUserMutation.isPending ? 'Suppression...' : 'Supprimer'}
 									</Button>
 								</td>
 							</tr>
@@ -109,6 +206,7 @@ const UsersTable = () => {
 				onClose={() => setFormOpen(false)}
 				onSave={handleSave}
 				initialData={editUser}
+				isLoading={createUserMutation.isPending || updateUserMutation.isPending}
 			/>
 		</Card>
 	);

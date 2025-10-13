@@ -98,22 +98,43 @@ export const authService = {
 // Service utilisateurs
 export const usersService = {
   async getUsers(params = {}) {
-    const response = await api.get('/users', { params });
+    const response = await api.get('/api/users', { params });
     return response.data;
   },
 
   async createUser(userData) {
-    const response = await api.post('/users', userData);
+    const response = await api.post('/api/users', userData);
     return response.data;
   },
 
   async updateUser(id, userData) {
-    const response = await api.put(`/users/${id}`, userData);
+    const response = await api.put(`/api/users/${id}`, userData);
+    return response.data;
+  },
+
+  async updatePassword(id, password) {
+    // Nouvelle méthode : appelle la route POST /api/users/{id}/password
+    const response = await api.post(`/api/users/${id}/password`, { password });
     return response.data;
   },
 
   async deleteUser(id) {
-    const response = await api.delete(`/users/${id}`);
+    const response = await api.delete(`/api/users/${id}`);
+    return response.data;
+  },
+
+  async getUser(id) {
+    const response = await api.get(`/api/users/${id}`);
+    return response.data;
+  },
+
+  async getRoles() {
+    const response = await api.get('/api/users/roles');
+    return response.data;
+  },
+
+  async getStats() {
+    const response = await api.get('/api/users/stats');
     return response.data;
   }
 };
@@ -122,6 +143,39 @@ export const usersService = {
 export const directionsService = {
   async getDirections() {
     const response = await api.get('/directions');
+    return response.data;
+  }
+};
+
+// Service services
+export const servicesService = {
+  async getServices(params = {}) {
+    const response = await api.get('/api/services', { params });
+    return response.data;
+  },
+
+  async createService(serviceData) {
+    const response = await api.post('/api/services', serviceData);
+    return response.data;
+  },
+
+  async updateService(id, serviceData) {
+    const response = await api.put(`/api/services/${id}`, serviceData);
+    return response.data;
+  },
+
+  async deleteService(id) {
+    const response = await api.delete(`/api/services/${id}`);
+    return response.data;
+  },
+
+  async getService(id) {
+    const response = await api.get(`/api/services/${id}`);
+    return response.data;
+  },
+
+  async getServicesByDirection(directionId) {
+    const response = await api.get(`/api/services/direction/${directionId}`);
     return response.data;
   }
 };

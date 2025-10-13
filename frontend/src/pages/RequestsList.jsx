@@ -5,11 +5,13 @@ import { Badge } from '../components/ui/badge';
 import { Table } from '../components/ui/table';
 import { Loader2, Eye, Filter } from 'lucide-react';
 
+
 const statusColors = {
   'En attente': 'bg-orange-100 text-orange-800',
   Validée: 'bg-green-100 text-green-800',
   Rejetée: 'bg-red-100 text-red-800',
 };
+
 
 const RequestsList = () => {
   const [requests, setRequests] = useState([]);
@@ -17,6 +19,9 @@ const RequestsList = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRequests, setSelectedRequests] = useState([]);
   const [detailRequest, setDetailRequest] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' ou 'desc'
+
+  // Fetch requests
 
   useEffect(() => {
     setLoading(true);
@@ -44,6 +49,17 @@ const RequestsList = () => {
           created_at: req.created_at,
         }));
         setRequests(formattedRequests);
+
+        const sorted = [...formattedRequests].sort((a, b) => {
+  if (sortBy === 'created_at') {
+    return sortOrder === 'asc'
+      ? new Date(a.created_at) - new Date(b.created_at)
+      : new Date(b.created_at) - new Date(a.created_at);
+  }
+  return a[sortBy].localeCompare(b[sortBy]);
+});
+setRequests(sorted);
+
         setLoading(false);
       })
       .catch((err) => {
@@ -52,17 +68,23 @@ const RequestsList = () => {
       });
   }, []);
 
-  const handleSort = (field) => {
-    setSortBy(field);
-    setRequests((prev) =>
-      [...prev].sort((a, b) => {
-        if (field === 'created_at') {
-          return new Date(b.created_at) - new Date(a.created_at);
-        }
-        return a[field].localeCompare(b[field]);
-      })
-    );
-  };
+const handleSort = (field) => {
+  const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+  setSortOrder(newOrder);
+  setSortBy(field);
+
+  setRequests((prev) =>
+    [...prev].sort((a, b) => {
+      if (field === 'created_at') {
+        return newOrder === 'asc'
+          ? new Date(a.created_at) - new Date(b.created_at)
+          : new Date(b.created_at) - new Date(a.created_at);
+      }
+      return a[field].localeCompare(b[field]);
+    })
+  );
+};
+
 
   const handleBatchAction = async (ids, action) => {
     setLoading(true);
@@ -118,7 +140,7 @@ const RequestsList = () => {
                 onClick={() => handleSort('created_at')}
               >
                 <Filter className="w-4 h-4 mr-2" />
-                Trier par date
+                Trier par date {sortOrder === 'asc' ? '↑' : '↓'}
               </Button>
             </CardTitle>
           </CardHeader>

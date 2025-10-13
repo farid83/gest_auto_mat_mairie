@@ -42,7 +42,7 @@ const Dashboard = () => {
   const getRoleSpecificStats = () => {
     const roleStats = [];
 
-    if (hasAnyRole(['admin', 'gestionnaire_stock'])) {
+    if (hasAnyRole(['admin', 'gestionnaire_stock', 'secretaire_executif', 'daaf'])) {
       roleStats.push(
         {
           title: "Matériels en stock",
@@ -62,7 +62,7 @@ const Dashboard = () => {
       );
     }
 
-    if (hasAnyRole(['directeur', 'daaf', 'secretaire_executif'])) {
+    if (hasAnyRole(['directeur', 'daaf', 'secretaire_executif', 'gestionnaire_stock'])) {
       roleStats.push({
         title: "Validations en attente",
         value: currentStats.pending_validations,

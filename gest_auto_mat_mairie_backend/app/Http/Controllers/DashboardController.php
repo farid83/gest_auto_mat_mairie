@@ -13,7 +13,7 @@ class DashboardController extends Controller
     public function getStats(Request $request)
     {
         $user = $request->user();
-        
+
         // Compter le nombre total de matériels
         $materials_total = Materiel::count();
 
@@ -25,23 +25,45 @@ class DashboardController extends Controller
 
         // Compter le nombre de demandes en attente
         $requests_pending = Demande::where('status', 'en_attente')->count();
-        
+
         // Compter le nombre de validations en attente (pour les directeurs)
+        // Compter le nombre de validations en attente selon le rôle
         $pending_validations = 0;
-        if ($user && in_array($user->role, ['directeur', 'daaf', 'secretaire_executif'])) {
-            $pending_validations = Demande::where('status', 'en_attente')
-                                          ->where('directeur_id', $user->id)
-                                          ->count();
+
+        if ($user) {
+            switch ($user->role) {
+                case 'directeur':
+                    $pending_validations = Demande::where('status', 'en_attente')
+                        ->where('directeur_id', $user->id)
+                        ->count();
+                    break;
+
+                case 'daaf':
+                    $pending_validations = Demande::where('status', 'en_attente_daaf')
+                        ->count();
+                    break;
+
+                case 'secretaire_executif':
+                    $pending_validations = Demande::where('status', 'en_attente_secretaire_executif')
+                        ->count();
+                    break;
+
+                case 'gestionnaire_stock':
+                    $pending_validations = Demande::where('status', 'en_attente_stock')
+                        ->count();
+                    break;
+            }
         }
-        
+
+
         // Compter le nombre de demandes de l'utilisateur connecté
         $user_requests_total = 0;
         $user_requests_pending = 0;
         if ($user) {
             $user_requests_total = Demande::where('user_id', $user->id)->count();
             $user_requests_pending = Demande::where('user_id', $user->id)
-                                           ->where('status', 'en_attente')
-                                           ->count();
+                ->where('status', 'en_attente')
+                ->count();
         }
 
         // Compter le nombre de notifications non lues

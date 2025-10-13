@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Direction;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DirectionController extends Controller
 {
@@ -12,7 +14,8 @@ class DirectionController extends Controller
      */
     public function index()
     {
-        //
+        $directions = Direction::withCount('services', 'users')->get();
+        return response()->json($directions);
     }
 
     /**
@@ -20,7 +23,17 @@ class DirectionController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:100|unique:directions,name',
+            'description' => 'nullable|string',
+        ]);
+
+        $direction = Direction::create($validated);
+
+        return response()->json([
+            'direction' => $direction,
+            'message' => 'Direction créée avec succès',
+        ]);
     }
 
     /**
@@ -28,7 +41,8 @@ class DirectionController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $direction = Direction::with(['services', 'users'])->findOrFail($id);
+        return response()->json($direction);
     }
 
     /**
@@ -36,7 +50,19 @@ class DirectionController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $direction = Direction::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:100', Rule::unique('directions')->ignore($direction->id)],
+            'description' => 'nullable|string',
+        ]);
+
+        $direction->update($validated);
+
+        return response()->json([
+            'direction' => $direction,
+            'message' => 'Direction mise à jour avec succès',
+        ]);
     }
 
     /**
@@ -44,6 +70,19 @@ class DirectionController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $direction = Direction::findOrFail($id);
+        
+        // Check if direction has related services or users
+        if ($direction->services()->count() > 0 || $direction->users()->count() > 0) {
+            return response()->json([
+                'message' => 'Impossible de supprimer cette direction car elle contient encore des services ou des utilisateurs',
+            ], 422);
+        }
+
+        $direction->delete();
+
+        return response()->json([
+            'message' => 'Direction supprimée avec succès',
+        ]);
     }
 }

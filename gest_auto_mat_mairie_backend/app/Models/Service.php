@@ -11,11 +11,17 @@ class Service extends Model
 
     protected $fillable = [
         'name',
+        'direction_id',
+        'description',
     ];
 
     public function users()
-{
-    return $this->hasMany(User::class);
-}
+    {
+        return $this->hasMany(User::class);
+    }
 
+    public function direction()
+    {
+        return $this->belongsTo(Direction::class);
+    }
 }

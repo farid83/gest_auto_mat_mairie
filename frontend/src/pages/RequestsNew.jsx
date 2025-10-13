@@ -112,6 +112,9 @@ const handleSuggestionClick = (idx, suggestion) => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
+  if (isSubmitting) return; // protection double clic
+  setIsSubmitting(true);
+
   // Vérification basique des quantités
   for (let item of materials) {
     if (item.quantity <= 0) {
@@ -174,6 +177,8 @@ console.log('Token :', token);
   } catch (error) {
     console.error('Erreur fetch :', error);
     toast.error('Erreur réseau ou serveur');
+  } finally { 
+    setIsSubmitting(false);
   }
 };
 
