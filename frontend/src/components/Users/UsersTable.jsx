@@ -8,9 +8,11 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import UserForm from './UserForm';
 import { usersService } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import autoTable from 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
 
 const roleLabels = {
-	agent: 'Agent',
+	user: 'user',
 	directeur: 'Directeur',
 	gestionnaire_stock: 'Gestionnaire',
 	daaf: 'DAAF',
@@ -96,6 +98,57 @@ const UsersTable = () => {
 		setActiveFilter(value);
 	};
 
+	//Génere le pdf
+
+	const handleExportPDF = () => {
+		const doc = new jsPDF();
+		const date = new Date().toLocaleDateString('fr-FR');
+		const pageWidth = doc.internal.pageSize.getWidth();
+
+		// En-tête
+		doc.setFontSize(16);
+		doc.text('Liste des agents de la mairie sur la plateforme', pageWidth / 2, 20, { align: 'center' });
+		doc.setFontSize(12);
+		doc.text(`Date d'export : ${date}`, pageWidth - 20, 30, { align: 'right' });
+
+		// Vérification des données
+		if (!users?.data || users.data.length === 0) {
+			doc.text('Aucun utilisateur à exporter.', 20, 50);
+			doc.save(`liste_utilisateurs_${date.replace(/\//g, '-')}.pdf`);
+			return;
+		}
+
+		// Données du tableau
+		const headers = [['Nom', 'Email', 'Rôle', 'Statut']];
+		const data = users.data.map(u => [
+			u.name,
+			u.email,
+			roleLabels[u.role] || u.role,
+			u.active ? 'Actif' : 'Inactif',
+		]);
+
+		// Génération du tableau
+		autoTable(doc, {
+			startY: 40,
+			head: headers,
+			body: data,
+			theme: 'grid',
+			styles: { font: 'helvetica', fontSize: 10 },
+			headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+		});
+
+		// Pied de page
+		const pageCount = doc.getNumberOfPages();
+		for (let i = 1; i <= pageCount; i++) {
+			doc.setPage(i);
+			doc.setFontSize(10);
+			doc.text(`Page ${i}/${pageCount}`, pageWidth - 20, doc.internal.pageSize.getHeight() - 10);
+			doc.text("Mairie d'Adjarra - Service Gestion du matériel", 20, doc.internal.pageSize.getHeight() - 10);
+		}
+
+		doc.save(`liste_utilisateurs_${date.replace(/\//g, '-')}.pdf`);
+	};
+
 	if (isLoading) return <div>Chargement...</div>;
 	if (error) {
 		if (error.response?.status === 401) {
@@ -112,7 +165,7 @@ const UsersTable = () => {
 					<Button size="sm" onClick={handleAdd}>
 						Ajouter
 					</Button>
-					<Button size="sm" variant="outline">
+					<Button size="sm" variant="outline" onClick={handleExportPDF}>
 						Exporter
 					</Button>
 				</div>
@@ -128,7 +181,7 @@ const UsersTable = () => {
 							<SelectValue placeholder="Rôle" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="agent">Agent</SelectItem>
+							<SelectItem value="user">user</SelectItem>
 							<SelectItem value="directeur">Directeur</SelectItem>
 							<SelectItem value="gestionnaire_stock">Gestionnaire</SelectItem>
 							<SelectItem value="daaf">DAAF</SelectItem>

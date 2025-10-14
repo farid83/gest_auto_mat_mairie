@@ -266,7 +266,7 @@ export const AuthProvider = ({ children }) => {
         // deliveries: ['read', 'create', 'update'],
         settings: []
       },
-      agent: {
+      user: {
         users: ['read'],
         materials: ['read'],
         requests: ['read', 'create'],

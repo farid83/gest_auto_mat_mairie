@@ -71,6 +71,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Tableau de bord
     Route::get('dashboard/stats', [DashboardController::class, 'getStats']);
+
+    // --- ajouter la route pour mise à jour du mot de passe courant ---
+    Route::post('/me/password', [UserController::class, 'updateMyPassword']);
 });
 
 // Routes utilisateurs supplémentaires

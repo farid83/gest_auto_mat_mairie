@@ -120,7 +120,7 @@ class DemandeSeeder extends Seeder
                     'materiel_id' => 3,
                     'quantite_demandee' => 3,
                     'quantite_validee' => 3,
-                    'justification' => 'Pour les nouveaux agents',
+                    'justification' => 'Pour les nouveaux users',
                 ]);
             }
         }

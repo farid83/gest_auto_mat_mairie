@@ -51,7 +51,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => ['required', Rule::in([
-                'agent',
+                'user',
                 'directeur',
                 'gestionnaire_stock',
                 'daaf',
@@ -86,7 +86,7 @@ class UserController extends Controller
             'email' => ['sometimes', 'email', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8',
             'role' => ['sometimes', Rule::in([
-                'agent',
+                'user',
                 'directeur',
                 'gestionnaire_stock',
                 'daaf',
@@ -185,5 +185,26 @@ class UserController extends Controller
             'user' => $user->load(['service']),
         ]);
     }
+
+    /**
+     * Mise à jour du mot de passe pour l'utilisateur courant.
+     * - Exige current_password, password et password_confirmation.
+     * - Vérifie que current_password correspond au mot de passe actuel.
+     * - Hash et sauvegarde.
+     */
+ public function updateMyPassword(Request $request)
+{
+    $user = $request->user();
+
+    $validated = $request->validate([
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $user->password = Hash::make($validated['password']);
+    $user->save();
+
+    return response()->json(['message' => 'Mot de passe mis à jour avec succès.']);
+}
+
 }
 

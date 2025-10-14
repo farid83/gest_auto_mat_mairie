@@ -24,7 +24,7 @@ final class Color
         'green' => 2,
         'yellow' => 3,
         'blue' => 4,
-        'magenta' => 5,
+        'musera' => 5,
         'cyan' => 6,
         'white' => 7,
         'default' => 9,
@@ -36,7 +36,7 @@ final class Color
         'bright-green' => 2,
         'bright-yellow' => 3,
         'bright-blue' => 4,
-        'bright-magenta' => 5,
+        'bright-musera' => 5,
         'bright-cyan' => 6,
         'bright-white' => 7,
     ];

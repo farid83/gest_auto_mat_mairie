@@ -113,8 +113,16 @@ export const usersService = {
   },
 
   async updatePassword(id, password) {
-    // Nouvelle méthode : appelle la route POST /api/users/{id}/password
     const response = await api.post(`/api/users/${id}/password`, { password });
+    return response.data;
+  },
+
+  /**
+   * Changer son propre mot de passe (utilisateur authentifié).
+   * Exige: { current_password, password, password_confirmation }
+   */
+  async updateMyPassword(payload) {
+    const response = await api.post('/api/me/password', payload);
     return response.data;
   },
 

@@ -45,7 +45,7 @@ final class CodeRenderer
     private const THEME = [
         self::TOKEN_STRING => 'text-gray',
         self::TOKEN_COMMENT => 'text-gray italic',
-        self::TOKEN_KEYWORD => 'text-magenta strong',
+        self::TOKEN_KEYWORD => 'text-musera strong',
         self::TOKEN_DEFAULT => 'strong',
         self::TOKEN_HTML => 'text-blue strong',
 

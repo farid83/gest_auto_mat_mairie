@@ -10101,7 +10101,7 @@ namespace Illuminate\Support\Facades {
      * @method static \Illuminate\Http\Client\PendingRequest withDigestAuth(string $username, string $password)
      * @method static \Illuminate\Http\Client\PendingRequest withNtlmAuth(string $username, string $password)
      * @method static \Illuminate\Http\Client\PendingRequest withToken(string $token, string $type = 'Bearer')
-     * @method static \Illuminate\Http\Client\PendingRequest withUserAgent(string|bool $userAgent)
+     * @method static \Illuminate\Http\Client\PendingRequest withUseruser(string|bool $useruser)
      * @method static \Illuminate\Http\Client\PendingRequest withUrlParameters(array $parameters = [])
      * @method static \Illuminate\Http\Client\PendingRequest withCookies(array $cookies, string $domain)
      * @method static \Illuminate\Http\Client\PendingRequest maxRedirects(int $max)
@@ -14149,15 +14149,15 @@ namespace Illuminate\Support\Facades {
         }
 
         /**
-         * Get the client user agent.
+         * Get the client user user.
          *
          * @return string|null
          * @static
          */
-        public static function userAgent()
+        public static function useruser()
         {
             /** @var \Illuminate\Http\Request $instance */
-            return $instance->userAgent();
+            return $instance->useruser();
         }
 
         /**

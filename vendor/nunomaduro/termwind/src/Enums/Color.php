@@ -476,7 +476,7 @@ final class Color
 
     public const ROSE_900 = '#881337';
 
-    public const MAGENTA = 'magenta';
+    public const MuserA = 'musera';
 
-    public const BRIGHTMAGENTA = 'bright-magenta';
+    public const BRIGHTMuserA = 'bright-musera';
 }

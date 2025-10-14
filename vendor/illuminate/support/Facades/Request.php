@@ -27,7 +27,7 @@ namespace Illuminate\Support\Facades;
  * @method static bool secure()
  * @method static string|null ip()
  * @method static array ips()
- * @method static string|null userAgent()
+ * @method static string|null useruser()
  * @method static \Illuminate\Http\Request merge(array $input)
  * @method static \Illuminate\Http\Request mergeIfMissing(array $input)
  * @method static \Illuminate\Http\Request replace(array $input)

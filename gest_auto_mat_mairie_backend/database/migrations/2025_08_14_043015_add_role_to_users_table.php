@@ -9,7 +9,7 @@ return new class extends Migration {
         Schema::table('users', function (Blueprint $table) {
             $table->string('role')
                   ->default('user')
-                  ->checkIn(['admin', 'agent', 'user'])
+                  ->checkIn(['admin', 'user', 'user'])
                   ->after('email');
         });
     }

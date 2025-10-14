@@ -5,7 +5,7 @@ export const mockUsers = [
     id: 3,
     name: "Jean Dupont",
     email: "jean.dupont@example.com",
-    role: "agent",
+    role: "user",
     direction: "Direction des Travaux Publics",
     active: true,
     avatar: "/api/placeholder/40/40"
@@ -217,7 +217,7 @@ export const mockRequests = [
         material_name: "Chaise de bureau",
         quantity: 3,
         unit_price: 75000,
-        justification: "Nouvel agent recruté"
+        justification: "Nouvel user recruté"
       }
     ],
     validations: [
@@ -320,7 +320,7 @@ export const mockNotifications = [
 export const mockApiDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const roleLabels = {
-  agent: "Agent",
+  user: "user",
   directeur: "Directeur",
   gestionnaire_stock: "Gestionnaire de Stock", 
   daaf: "DAAF",

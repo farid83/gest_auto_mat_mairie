@@ -218,7 +218,7 @@ interface User {
   id: number;
   name: string;
   email: string;
-  role: 'agent' | 'directeur' | 'gestionnaire_stock' | 'daaf' | 'secretaire_executif' | 'admin';
+  role: 'user' | 'directeur' | 'gestionnaire_stock' | 'daaf' | 'secretaire_executif' | 'admin';
   direction_id: number;
   direction?: Direction;
   active: boolean;
