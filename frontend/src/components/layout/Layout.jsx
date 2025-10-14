@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mockNotifications, roleLabels } from '../../services/mock';
 import { Toaster, toast } from 'sonner'; // <-- ajouté `toast` pour notifications
 
+
 // Ajouter imports Dialog et Input
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Input } from '../ui/input';

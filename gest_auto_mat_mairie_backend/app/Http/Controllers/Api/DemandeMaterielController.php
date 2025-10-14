@@ -414,7 +414,7 @@ class DemandeMaterielController extends Controller
             'materiel_ids' => 'required|array',
             'status' => 'required|in:validee,rejetee,validé,rejeté',
             'quantites' => 'nullable|array',
-            'quantites.*' => 'nullable|integer|min:1',
+            'quantites.*' => 'nullable|integer|min:0',
         ]);
 
         // Normaliser statut

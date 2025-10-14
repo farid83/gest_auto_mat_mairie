@@ -312,7 +312,7 @@ setRequests(sortedDemandes);
                       <input
                         id={`qte-${mat.materiel_id}`}
                         type="number"
-                        min={1}
+                        min={0}
                         value={quantities[mat.materiel_id] ?? mat.quantity}
                         onChange={e => setQuantities({
                           ...quantities,

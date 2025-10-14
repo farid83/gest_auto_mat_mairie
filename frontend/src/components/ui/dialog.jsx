@@ -1,6 +1,7 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 
 import { cn } from "../../lib/utils"
 
@@ -79,6 +80,26 @@ const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
     {...props} />
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
+
+export function AppDialogContent({ children, title, description, ...props }) {
+  const id = useId ? useId() : `dialog-${Math.random().toString(36).slice(2, 9)}`;
+  const titleId = `${id}-title`;
+  const descId = `${id}-desc`;
+
+  return (
+    <Dialog.Content aria-labelledby={titleId} aria-describedby={description ? descId : undefined} {...props}>
+      <VisuallyHidden>
+        <Dialog.Title id={titleId}>{title ?? 'Fenêtre modale'}</Dialog.Title>
+      </VisuallyHidden>
+
+      {description ? (
+        <Dialog.Description id={descId}>{description}</Dialog.Description>
+      ) : null}
+
+      {children}
+    </Dialog.Content>
+  );
+}
 
 export {
   Dialog,
