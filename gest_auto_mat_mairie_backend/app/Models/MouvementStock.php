@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Materiel;
+use App\Models\User; // <-- ajouté
+
 class MouvementStock extends Model
 {
     //
@@ -24,6 +26,11 @@ class MouvementStock extends Model
         return $this->belongsTo(Materiel::class);
     }
 
-    
+    // Ajout de la relation user() utilisée par le contrôleur
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
+    
 }

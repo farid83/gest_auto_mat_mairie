@@ -61,6 +61,70 @@ class DemandeMaterielController extends Controller
     }
 
     /**
+     * Récupérer TOUTES les demandes (pour admin, gestionnaire_stock et daaf)
+     */
+    public function getAllRequests(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
+
+        // Vérifier si l'utilisateur a le droit d'accéder à cette fonction
+        $allowedRoles = ['admin', 'gestionnaire_stock', 'daaf'];
+        if (!in_array($user->role, $allowedRoles)) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+
+        try {
+            $demandes = Demande::with(['materiels.materiel', 'user', 'service'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $demandes = $demandes->map(function ($demande) {
+                return [
+                    'id' => $demande->id,
+                    'demande_id' => $demande->id,
+                    'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
+                    'user_service' => $demande->user->service?->name ?? 'Service inconnu',
+                    // 'user_direction' => $demande->user->service?->direction?->nom ?? 'Direction inconnue',
+                    'created_at' => $demande->created_at,
+                    'updated_at' => $demande->updated_at,
+                    'status' => $demande->status,
+                    'validated_by' => $demande->validated_by ?? 'Non validé',
+                    'commentaire_secretaire' => $demande->commentaire_secretaire ?? 'Aucun commentaire',
+                    'livraison_status' => $demande->livraison_status ?? 'Non livrée',
+                    'materials' => $demande->materiels->map(function ($dm) {
+                        return [
+                            'id' => $dm->id,
+                            'materiel_id' => $dm->materiel_id,
+                            'name' => $dm->materiel->nom ?? 'Nom indisponible',
+                            'quantity' => $dm->quantite_demandee ?? 0,
+                            'justification' => $dm->justification ?? 'Aucune justification',
+                            'status' => $dm->status ?? 'en_attente',
+                            'created_at' => $dm->created_at,
+                            'updated_at' => $dm->updated_at,
+                            'quantite_validee' => $dm->quantite_validee,
+                            'quantite_proposee_gestionnaire' => $dm->quantite_proposee_gestionnaire,
+                            'quantite_validee_daaf' => $dm->quantite_validee_daaf,
+                            'date_validation_directeur' => $dm->date_validation_directeur,
+                            'date_validation_gestionnaire' => $dm->date_validation_gestionnaire,
+                            'date_validation_daaf' => $dm->date_validation_daaf,
+                            'date_validation_secretaire' => $dm->date_validation_secretaire,
+                        ];
+                    })
+                ];
+            });
+
+            return response()->json([
+                'message' => 'Liste complète de toutes les demandes',
+                'demandes' => $demandes
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erreur getAllRequests: ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur serveur lors de la récupération des demandes'], 500);
+        }
+    }
+
+    /**
      * Récupérer les demandes à valider selon le rôle
      */
     public function getRequestsForValidation(Request $request)
@@ -647,42 +711,5 @@ class DemandeMaterielController extends Controller
           ], 500);
       }
   }
-
-    /**
-     * Récupérer les demandes prêtes à être livrées
-     */
-    // public function getReadyToDeliver(Request $request)
-    // {
-    //     $user = $request->user();
-    //     if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
-
-    //     $demandes = Demande::with(['materiels.materiel', 'user'])
-    //         ->where('status', 'livraison')
-    //         ->orderBy('created_at', 'desc')
-    //         ->get();
-
-    //     $demandes = $demandes->map(function ($demande) {
-    //         return [
-    //             'id' => $demande->id,
-    //             'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
-    //             'created_at' => $demande->created_at,
-    //             'status' => $demande->status,
-    //             'materials' => $demande->materiels->map(function ($dm) {
-    //                 return [
-    //                     'id' => $dm->id,
-    //                     'materiel_id' => $dm->materiel_id,
-    //                     'name' => $dm->materiel->nom ?? 'Nom indisponible',
-    //                     'quantity' => $dm->quantite_validee ?? 0,
-    //                     'justification' => $dm->justification ?? 'Aucune justification',
-    //                 ];
-    //             })
-    //         ];
-    //     });
-
-    //     return response()->json([
-    //         'message' => 'Liste des demandes prêtes à être livrées',
-    //         'demandes' => $demandes
-    //     ]);
-    // }
 
 }

@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, Package, FileText, CheckSquare, Users,
   Truck, Settings, Menu, Bell, User as UserIcon,
-  LogOut, Moon, Sun, Key
+  LogOut, Moon, Sun, Key, List
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -56,6 +56,7 @@ const Layout = () => {
     { icon: Home, label: 'Dashboard', path: '/dashboard', roles: ['user', 'directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif', 'admin'] },
     { icon: Package, label: 'Matériels', path: '/materials', roles: ['gestionnaire_stock', 'admin', 'secretaire_executif', 'daaf'] },
     { icon: FileText, label: 'Demandes', path: '/requests', roles: ['user', 'directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif', 'admin'] },
+    { icon: List, label: 'Toutes les demandes', path: '/requests/all', roles: ['admin', 'gestionnaire_stock', 'daaf'] },
     { icon: CheckSquare, label: 'Validations', path: '/validations', roles: ['directeur', 'gestionnaire_stock', 'daaf', 'secretaire_executif',] },
     // { icon: Truck, label: 'Livraisons', path: '/deliveries', roles: ['gestionnaire_stock','daaf','admin'] },
     { icon: Users, label: 'Utilisateurs', path: '/users', roles: ['admin'] },

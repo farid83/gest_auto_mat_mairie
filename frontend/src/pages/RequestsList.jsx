@@ -10,6 +10,8 @@ const statusColors = {
   'En attente': 'bg-orange-100 text-orange-800',
   Validée: 'bg-green-100 text-green-800',
   Rejetée: 'bg-red-100 text-red-800',
+  'En cours': 'bg-blue-100 text-blue-800',
+  Livrée: 'bg-purple-100 text-purple-800',
 };
 
 
@@ -44,6 +46,7 @@ const RequestsList = () => {
             name: mat.name || 'Nom indisponible',
             quantity: mat.quantity || 0,
             justification: mat.justification || 'Aucune justification',
+            status: mat.status || 'pending',
           })),
           status: req.status || 'En attente',
           created_at: req.created_at,
@@ -127,6 +130,23 @@ const handleSort = (field) => {
     }
   };
 
+  // map backend status keys to FR labels
+  const getMaterialStatus = (status) => {
+    const statusMap = {
+      'pending': 'En attente',
+      'validated': 'Validée',
+      'rejected': 'Rejetée',
+      'in_progress': 'En cours',
+      'delivered': 'Livrée',
+    };
+    return statusMap[status] || status;
+  };
+  
+  const getStatusClass = (status) => {
+    const label = getMaterialStatus(status);
+    return statusColors[label] || 'bg-gray-100 text-gray-800';
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-4xl space-y-6">
@@ -200,6 +220,9 @@ const handleSort = (field) => {
                                 <span className="text-xs italic text-gray-500">
                                   ({mat.justification})
                                 </span>
+                                <Badge className={`text-xs ${getStatusClass(mat.status)}`}>
+                                  {getMaterialStatus(mat.status)}
+                                </Badge>
                               </li>
                             ))}
                           </ul>
@@ -266,16 +289,24 @@ const handleSort = (field) => {
             <CardContent>
               <div className="space-y-2">
                 <div>
-                  <strong>Matériel :</strong>{' '}
-                  {detailRequest.materials.map((mat) => mat.name).join(', ')}
-                </div>
-                <div>
-                  <strong>Quantité :</strong>{' '}
-                  {detailRequest.materials.map((mat) => mat.quantity).join(', ')}
-                </div>
-                <div>
-                  <strong>Justification :</strong>{' '}
-                  {detailRequest.materials.map((mat) => mat.justification).join(', ')}
+                  <strong>Matériels :</strong>
+                  <div className="mt-2 space-y-2">
+                    {detailRequest.materials.map((mat) => (
+                      <div key={mat.name} className="flex items-center justify-between p-2 border rounded">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{mat.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            x{mat.quantity} • <span className="italic">{mat.justification}</span>
+                          </div>
+                        </div>
+                        <div className="ml-4 flex-shrink-0">
+                          <Badge className={`text-xs ${getStatusClass(mat.status)}`}>
+                            {getMaterialStatus(mat.status)}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <strong>Date :</strong>{' '}

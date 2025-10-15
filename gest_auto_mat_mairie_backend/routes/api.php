@@ -144,6 +144,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/demande_materiels', [DemandeMaterielController::class, 'index']);
+    Route::get('/demande_materiels/all', [DemandeMaterielController::class, 'getAllRequests']);
     Route::get('/demande-materiels/validation', [DemandeMaterielController::class, 'getRequestsForValidation']);
     Route::post('/demande-materiels/{id}/validate', [DemandeMaterielController::class, 'validateRequest']);
     Route::post('/demande-materiels/{id}/materiels/{materielId}/validate', [DemandeMaterielController::class, 'validateMateriel']);
