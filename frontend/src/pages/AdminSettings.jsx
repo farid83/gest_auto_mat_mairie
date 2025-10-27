@@ -32,4 +32,3 @@ const AdminSettings = () => (
 );
 
 export default AdminSettings;
-// filepath: c:\Users\ANFAR-Tech\gest_auto_mat_mairie\frontend\src\pages\AdminSettings.jsx

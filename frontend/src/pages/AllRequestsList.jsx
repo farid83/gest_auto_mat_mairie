@@ -41,13 +41,12 @@ const AllRequestsList = () => {
       const data = await response.json();
       const demandes = Array.isArray(data) ? data : data.demandes || [];
       
-      // Formater les demandes avec toutes les informations nécessaires
       const formattedRequests = demandes.map((req) => ({
         id: req.id,
         demande_id: req.demande_id,
         user_name: req.user_name || 'Utilisateur inconnu',
         user_service: req.user_service || 'Service inconnu',
-        // user_direction: req.user_direction || 'Direction inconnue',
+
         materials: (req.materials || []).map((mat) => ({
           id: mat.id,
           name: mat.name || 'Nom indisponible',
@@ -164,12 +163,10 @@ const AllRequestsList = () => {
                         <th>ID Demande</th>
                         <th>Demandeur</th>
                         <th>Service</th>
-                        {/* <th>Direction</th> */}
                         <th>Matériels</th>
                         <th>Statut</th>
                         <th>Date Création</th>
                         <th>Date Mise à jour</th>
-                        {/* <th>Statut Livraison</th> */}
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -190,7 +187,7 @@ const AllRequestsList = () => {
                             {req.user_name}
                           </td>
                           <td>{req.user_service}</td>
-                          {/* <td>{req.user_direction}</td> */}
+
                           <td>
                             <div className="space-y-1">
                               {req.materials.map((mat, idx) => (
@@ -234,14 +231,7 @@ const AllRequestsList = () => {
                               <span>{req.updated_at ? new Date(req.updated_at).toLocaleDateString('fr-FR') : '-'}</span>
                             </div>
                           </td>
-                          {/* <td>
-                            <Badge 
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {req.livraison_status}
-                            </Badge>
-                          </td> */}
+
                           <td className="align-middle">
                             <div className="flex items-center justify-center h-full">
                               <Button
@@ -295,7 +285,6 @@ const AllRequestsList = () => {
           </CardContent>
         </Card>
 
-        {/* Détail complet de la demande */}
         {detailRequest && (
           <Card className="border-primary/20">
             <CardHeader>
@@ -312,7 +301,6 @@ const AllRequestsList = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Informations générales */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg border-b pb-2">Informations générales</h3>
                   <div className="space-y-3">
@@ -331,10 +319,7 @@ const AllRequestsList = () => {
                       <label className="text-sm font-medium text-muted-foreground">Service</label>
                       <p>{detailRequest.user_service}</p>
                     </div>
-                    {/* <div>
-                      <label className="text-sm font-medium text-muted-foreground">Direction</label>
-                      <p>{detailRequest.user_direction}</p>
-                    </div> */}
+
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Statut général</label>
                       <Badge
@@ -345,10 +330,7 @@ const AllRequestsList = () => {
                         {detailRequest.status}
                       </Badge>
                     </div>
-                    {/* <div>
-                      <label className="text-sm font-medium text-muted-foreground">Statut livraison</label>
-                      <Badge variant="outline">{detailRequest.livraison_status}</Badge>
-                    </div> */}
+
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Validé par</label>
                       <p>{detailRequest.validated_by}</p>
@@ -360,7 +342,6 @@ const AllRequestsList = () => {
                   </div>
                 </div>
 
-                {/* Chronologie */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg border-b pb-2">Chronologie</h3>
                   <div className="space-y-3">
@@ -385,7 +366,6 @@ const AllRequestsList = () => {
                 </div>
               </div>
 
-              {/* Détail des matériels */}
               <div className="mt-6">
                 <h3 className="font-semibold text-lg border-b pb-2 mb-4">Détail des matériels</h3>
                 <div className="grid gap-4">

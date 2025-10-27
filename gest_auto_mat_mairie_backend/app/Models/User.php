@@ -25,7 +25,6 @@ class User extends Authenticatable
         'role',
         'active',
         'service_id',
-        // 'direction_id'
     ];
 public function getRoleNameAttribute()
 {
@@ -41,7 +40,7 @@ public function getRoleNameAttribute()
         'remember_token',
     ];
 
-    protected $appends = ['role_name']; // si tu veux un champ simplifié
+    protected $appends = ['role_name']; 
 
     /**
      * Get the attributes that should be cast.
@@ -62,7 +61,6 @@ public function service()
     return $this->belongsTo(Service::class);
 }
   
-    // app/Models/User.php
 
 
 

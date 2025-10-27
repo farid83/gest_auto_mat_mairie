@@ -1,4 +1,4 @@
-// Mock data pour l'application de gestion des matériels - Mairie d'Adjarra
+
 
 export const mockUsers = [
   {

@@ -22,7 +22,6 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Récupération dynamique des services
   useEffect(() => {
     fetch('http://localhost:8000/api/services')
       .then(res => res.json())

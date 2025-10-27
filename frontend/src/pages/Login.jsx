@@ -18,12 +18,10 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Nettoyer les erreurs au démarrage
   useEffect(() => {
     clearError();
   }, []);
 
-  // Rediriger si déjà authentifié
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -35,7 +33,6 @@ const Login = () => {
       [name]: value
     }));
 
-    // Nettoyer l'erreur lors de la saisie
     if (error) {
       clearError();
     }
@@ -48,7 +45,7 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
     setIsSubmitting(false);
     if (result.success) {
-      // 🧹 Nettoyer le cache du Dashboard avant redirection
+
       queryClient.removeQueries({ queryKey: queryKeys.dashboardStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
 
@@ -96,7 +93,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
+
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
@@ -107,7 +104,7 @@ const Login = () => {
           <p className="text-muted-foreground">Système de Gestion des Matériels</p>
         </div>
 
-        {/* Formulaire de connexion */}
+
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl text-center">Connexion</CardTitle>
@@ -185,7 +182,6 @@ const Login = () => {
           </form>
         </Card>
 
-        {/* Lien vers l'inscription */}
         <div className="text-center text-
         m my-2">
           Pas encore de compte ?{' '}
@@ -194,7 +190,6 @@ const Login = () => {
           </a>
         </div>
 
-        {/* Connexions rapides de démo */}
         <Card className="shadow-lg">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg text-center">Connexions de démonstration</CardTitle>
@@ -221,7 +216,6 @@ const Login = () => {
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
           © 2025 Mairie d'Adjarra - Tous droits réservés
         </div>

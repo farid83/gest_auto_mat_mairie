@@ -29,10 +29,6 @@ class UserController extends Controller
             $query->where('active', filter_var($request->active, FILTER_VALIDATE_BOOLEAN));
         }
 
-        // if ($request->filled('direction_id')) {
-        //     $query->where('direction_id', $request->direction_id);
-        // }
-
         if ($request->filled('service_id')) {
             $query->where('service_id', $request->service_id);
         }
@@ -58,7 +54,6 @@ class UserController extends Controller
                 'secretaire_executif',
                 'admin'
             ])],
-            // 'direction_id' => 'nullable|exists:directions,id',
             'service_id' => 'nullable|exists:services,id',
             'active' => 'boolean',
         ]);
@@ -93,7 +88,6 @@ class UserController extends Controller
                 'secretaire_executif',
                 'admin'
             ])],
-            // 'direction_id' => 'nullable|exists:directions,id',
             'service_id' => 'nullable|exists:services,id',
             'active' => 'boolean',
         ]);
@@ -156,18 +150,10 @@ class UserController extends Controller
         return response()->json($stats);
     }
 
-    /**
-     * Mise à jour dédiée du mot de passe utilisateur.
-     * - Valide le mot de passe (min 8).
-     * - Autorise l'opération uniquement si l'utilisateur est lui-même ou si l'utilisateur authentifié a le rôle 'admin'.
-     * - Hash + sauvegarde.
-     */
     public function updatePassword(Request $request, $id)
     {
         $user = User::findOrFail($id);
 
-        // Simple contrôle d'autorisation : soit l'utilisateur modifie son propre mot de passe,
-        // soit l'utilisateur connecté a le rôle 'admin'. Adapter selon vos règles métiers.
         $current = $request->user();
         if ($current->id !== (int)$id && ($current->role ?? '') !== 'admin') {
             return response()->json(['message' => "Non autorisé"], 403);
@@ -186,12 +172,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Mise à jour du mot de passe pour l'utilisateur courant.
-     * - Exige current_password, password et password_confirmation.
-     * - Vérifie que current_password correspond au mot de passe actuel.
-     * - Hash et sauvegarde.
-     */
  public function updateMyPassword(Request $request)
 {
     $user = $request->user();

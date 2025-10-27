@@ -8,14 +8,12 @@ use Illuminate\Http\Request;
 
 class MaterielController extends Controller
 {
-    // Afficher la liste de tous les matériels
     public function index()
     {
         $materiels = Materiel::all();
         return response()->json($materiels);
     }
 
-    // Enregistrer un nouveau matériel dans la base
     public function store(Request $request)
     {
         $request->validate([
@@ -26,7 +24,6 @@ class MaterielController extends Controller
             'etat' => 'required|string|max:255',
         ]);
 
-        // Vérification avant insertion
         if (Materiel::whereRaw('LOWER(nom) = ?', [strtolower($request->nom)])->exists()) {
             return response()->json(['message' => 'Matériel déjà existant'], 409);
         }
@@ -45,7 +42,6 @@ class MaterielController extends Controller
         ], 201);
     }
 
-    // Mettre à jour un matériel
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -71,7 +67,6 @@ class MaterielController extends Controller
         ]);
     }
 
-    // Supprimer un matériel
     public function destroy($id)
     {
         $materiel = Materiel::findOrFail($id);

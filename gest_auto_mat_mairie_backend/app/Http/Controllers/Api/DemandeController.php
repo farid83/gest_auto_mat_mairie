@@ -7,16 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\Demande;
 use App\Models\DemandeMateriel;
 use App\Models\User;
-// use App\Notifications\NewDemandeNotification;
 
 class DemandeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
    public function index(Request $request)
 {
-    // Récupérer uniquement les demandes de l'utilisateur connecté
     $user = $request->user();
     if (!$user) {
         return response()->json(['message' => 'Utilisateur non authentifié'], 401);
@@ -26,7 +21,6 @@ class DemandeController extends Controller
                       ->where('user_id', $user->id)
                       ->get();
 
-    // Reformater pour le frontend
     $demandes = $demandes->map(function($demande) {
         return [
             'id' => $demande->id,
@@ -51,10 +45,6 @@ class DemandeController extends Controller
 }
 
 
-
-    /**
-     * Store a newly created resource in storage.
-     */
 public function store(Request $request)
 {
     $user = $request->user();
@@ -72,7 +62,6 @@ public function store(Request $request)
 
     $rolesSpeciaux = ['secretaire_executif', 'daaf', 'directeur'];
 
-    // Récupérer les utilisateurs liés
     $gestionnaire = User::where('role', 'gestionnaire_stock')->first();
     if (!$gestionnaire) {
         return response()->json(['message' => 'Aucun gestionnaire de stock trouvé'], 404);
@@ -86,10 +75,8 @@ public function store(Request $request)
         return response()->json(['message' => 'Aucun directeur trouvé pour ce service'], 404);
     }
 
-    // Déterminer le status initial
     $statusInitial = in_array($user->role, $rolesSpeciaux) ? 'en_attente_stock' : 'en_attente';
 
-    // Créer la demande
     $demande = Demande::create([
         'user_id' => $user->id,
         'service_id' => $user->service_id,
@@ -99,7 +86,6 @@ public function store(Request $request)
         'justification' => $validatedData['justification'] ?? null,
     ]);
 
-    // Créer les matériels liés
     foreach ($validatedData['materiels'] as $mat) {
         DemandeMateriel::create([
             'demande_id' => $demande->id,
@@ -109,13 +95,6 @@ public function store(Request $request)
         ]);
     }
 
-    // Notifications
-    // if (in_array($user->role, $rolesSpeciaux)) {
-    //     $gestionnaire->notify(new NewDemandeNotification($demande, $user->name));
-    // } else {
-    //     $directeur->notify(new NewDemandeNotification($demande, $user->name));
-    // }
-
     $demande = Demande::with('materiels.materiel')->find($demande->id);
 
     return response()->json([
@@ -124,23 +103,14 @@ public function store(Request $request)
     ], 201);
 }
 
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        //
         $demande = Demande::with('materiels.materiel')->findOrFail($id);
         return response()->json($demande, 200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        //
         $demande = Demande::findOrFail($id);
 
         $validatedData = $request->validate([
@@ -160,12 +130,8 @@ public function store(Request $request)
         ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        //
         $demande = Demande::findOrFail($id);
         $demande->delete();
 

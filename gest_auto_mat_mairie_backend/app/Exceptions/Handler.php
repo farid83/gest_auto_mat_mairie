@@ -28,9 +28,6 @@ class Handler extends ExceptionHandler
         'password_confirmation',
     ];
 
-    /**
-     * Register the exception handling callbacks for the application.
-     */
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
@@ -45,7 +42,6 @@ class Handler extends ExceptionHandler
     }
 }
 
-// Dans app/Exceptions/Handler.php
 public function render($request, Throwable $exception)
 {
     if ($request->wantsJson()) {

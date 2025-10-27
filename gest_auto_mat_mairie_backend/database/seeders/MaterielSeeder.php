@@ -8,9 +8,6 @@ use App\Models\Materiel;
 
 class MaterielSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         Materiel::create([

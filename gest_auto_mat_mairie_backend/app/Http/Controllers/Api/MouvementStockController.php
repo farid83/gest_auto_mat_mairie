@@ -12,25 +12,16 @@ class MouvementStockController extends Controller
 {
 
 
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
         $mouvements = MouvementStock::with('materiel', 'user')->get();
         return response()->json($mouvements);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
-        // 🔹 Normalisation du type
         $rawType = $request->input('type', '');
-        $key = Str::of($rawType)->ascii()->lower(); // "Entrée" -> "entree", "Sortie" -> "sortie"
+        $key = Str::of($rawType)->ascii()->lower();
         if ($key === 'entree') {
             $request->merge(['type' => 'Entrée']);
         } elseif ($key === 'sortie') {
@@ -40,11 +31,9 @@ class MouvementStockController extends Controller
             'type'        => 'required|in:Entrée,Sortie',
             'materiel_id' => 'required|exists:materiels,id',
             'quantity' => 'required|integer|min:1',
-            // 'user_id' => 'required|exists:users,id',
             'date' => 'required|date',
         ]);
 
-        // Ajout automatique de l'user_id
         $validated['user_id'] = $request->user()->id;
 
         $materiel = Materiel::findOrFail($validated['materiel_id']);
@@ -66,25 +55,16 @@ class MouvementStockController extends Controller
         return response()->json($mouvement->load('materiel'), 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //

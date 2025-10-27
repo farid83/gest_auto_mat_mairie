@@ -12,12 +12,8 @@ use Illuminate\Support\Facades\Hash;
 
 class DemandeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Créer des services
         $services = [
             ['name' => 'Service Technique'],
             ['name' => 'Service Administratif'],
@@ -29,7 +25,6 @@ class DemandeSeeder extends Seeder
             Service::create($service);
         }
 
-        // Créer des utilisateurs
         $users = [
             [
                 'name' => 'John Doe',
@@ -65,7 +60,6 @@ class DemandeSeeder extends Seeder
             User::create($user);
         }
 
-        // Créer des matériels
         $materiels = [
             ['nom' => 'Ordinateur portable', 'categorie' => 'Informatique', 'quantite_totale' => 10, 'quantite_disponible' => 8, 'etat' => 'Neuf'],
             ['nom' => 'Imprimante', 'categorie' => 'Informatique', 'quantite_totale' => 5, 'quantite_disponible' => 3, 'etat' => 'Bon'],
@@ -77,18 +71,17 @@ class DemandeSeeder extends Seeder
             Materiel::create($materiel);
         }
 
-        // Créer des demandes de test
         $demandes = [
             [
-                'user_id' => 2, // Jane Smith
-                'service_id' => 1, // Service Technique
-                'directeur_id' => 1, // John Doe
+                'user_id' => 2,
+                'service_id' => 1,
+                'directeur_id' => 1, 
                 'status' => 'en_attente',
             ],
             [
-                'user_id' => 4, // Alice Brown
-                'service_id' => 2, // Service Administratif
-                'directeur_id' => 3, // Bob Johnson
+                'user_id' => 4, 
+                'service_id' => 2,
+                'directeur_id' => 3,
                 'status' => 'validee',
                 'date_validation_directeur' => now(),
             ],
@@ -97,7 +90,6 @@ class DemandeSeeder extends Seeder
         foreach ($demandes as $demande) {
             $demandeModel = Demande::create($demande);
             
-            // Ajouter des matériels à la demande
             if ($demandeModel->id === 1) {
                 DemandeMateriel::create([
                     'demande_id' => $demandeModel->id,

@@ -5,19 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Materiel;
-use App\Models\User; // <-- ajouté
+use App\Models\User;
 
 class MouvementStock extends Model
 {
     //
     use HasFactory;
-    protected $table = 'mouvement_stocks'; // Assurez-vous que le nom de la table est correct
+    protected $table = 'mouvement_stocks'; 
 
     protected $fillable = [
-       'type', // type de mouvement (Entrée ou Sortie)
-        'materiel_id', // référence au matériel
-        'quantity', // quantité de matériel
-        'user_id',     // responsable du mouvement
+       'type',
+        'materiel_id', 
+        'quantity',
+        'user_id', 
         'date', 
     ];
 
@@ -26,7 +26,6 @@ class MouvementStock extends Model
         return $this->belongsTo(Materiel::class);
     }
 
-    // Ajout de la relation user() utilisée par le contrôleur
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
