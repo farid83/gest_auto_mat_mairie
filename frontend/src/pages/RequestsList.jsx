@@ -21,9 +21,7 @@ const RequestsList = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRequests, setSelectedRequests] = useState([]);
   const [detailRequest, setDetailRequest] = useState(null);
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' ou 'desc'
-
-  // Fetch requests
+  const [sortOrder, setSortOrder] = useState('desc'); 
 
   useEffect(() => {
     setLoading(true);
@@ -130,7 +128,6 @@ const handleSort = (field) => {
     }
   };
 
-  // map backend status keys to FR labels
   const getMaterialStatus = (status) => {
     const statusMap = {
       'pending': 'En attente',
@@ -280,7 +277,6 @@ const handleSort = (field) => {
           </CardContent>
         </Card>
 
-        {/* Détail de la demande */}
         {detailRequest && (
           <Card className="shadow-lg border-0 mt-4">
             <CardHeader>

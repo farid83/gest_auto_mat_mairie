@@ -22,12 +22,12 @@ if (Auth::attempt($credentials)) {
 
   return response()->json([
     'message'     => 'Connexion réussie',
-    'session_id'  => $token, // 🔹 nouveau nom
+    'session_id'  => $token,
     'user'        => [
         'id'    => $user->id,
         'name'  => $user->name,
         'email' => $user->email,
-        'role'  => $user->role, // ajouter le rôle ici
+        'role'  => $user->role, 
         'token' => $token
     ]
 ]);

@@ -12,14 +12,10 @@ use App\Models\MouvementStock;
 use App\Models\Materiel;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
-// use App\Notifications\DemandeValideeNotification;
-// use App\Notifications\LivraisonReadyNotification;
+
 
 class DemandeMaterielController extends Controller
 {
-    /**
-     * Liste des demandes de l'utilisateur connecté
-     */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -60,15 +56,11 @@ class DemandeMaterielController extends Controller
         return response()->json(['message' => 'Liste des demandes', 'demandes' => $demandes]);
     }
 
-    /**
-     * Récupérer TOUTES les demandes (pour admin, gestionnaire_stock et daaf)
-     */
     public function getAllRequests(Request $request)
     {
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Utilisateur non authentifié'], 401);
 
-        // Vérifier si l'utilisateur a le droit d'accéder à cette fonction
         $allowedRoles = ['admin', 'gestionnaire_stock', 'daaf'];
         if (!in_array($user->role, $allowedRoles)) {
             return response()->json(['message' => 'Accès non autorisé'], 403);
@@ -85,7 +77,6 @@ class DemandeMaterielController extends Controller
                     'demande_id' => $demande->id,
                     'user_name' => $demande->user->name ?? 'Utilisateur inconnu',
                     'user_service' => $demande->user->service?->name ?? 'Service inconnu',
-                    // 'user_direction' => $demande->user->service?->direction?->nom ?? 'Direction inconnue',
                     'created_at' => $demande->created_at,
                     'updated_at' => $demande->updated_at,
                     'status' => $demande->status,
@@ -123,10 +114,6 @@ class DemandeMaterielController extends Controller
             return response()->json(['message' => 'Erreur serveur lors de la récupération des demandes'], 500);
         }
     }
-
-    /**
-     * Récupérer les demandes à valider selon le rôle
-     */
     public function getRequestsForValidation(Request $request)
     {
         $user = $request->user();
@@ -196,9 +183,6 @@ class DemandeMaterielController extends Controller
         ]);
     }
 
-    /**
-     * Validation globale d'une demande
-     */
     public function validateRequest(Request $request, $id)
     {
         $user = $request->user();
@@ -216,7 +200,6 @@ class DemandeMaterielController extends Controller
             'quantites.*' => 'nullable|integer|min:1',
         ]);
 
-        // Normaliser les statuts
         $statusMap = [
             'validé' => 'validee',
             'rejeté' => 'rejetee'
@@ -225,7 +208,6 @@ class DemandeMaterielController extends Controller
 
         $role = $user->role;
 
-        // Commentaire + date de validation
         $commentField = 'commentaire_' . $role;
         if (Schema::hasColumn('demandes', $commentField)) {
             $demande->$commentField = $validated['commentaire'] ?? null;
@@ -241,7 +223,6 @@ class DemandeMaterielController extends Controller
 
             foreach ($demande->materiels as $dm) {
                 if (in_array($dm->materiel_id, $materielIdsValides)) {
-                    // Matériel sélectionné → validé
                     if ($role === 'gestionnaire_stock' && isset($validated['quantites'][$dm->materiel_id])) {
                         $dm->quantite_proposee_gestionnaire = $validated['quantites'][$dm->materiel_id];
                     }
@@ -256,7 +237,6 @@ class DemandeMaterielController extends Controller
 
                     $dm->status = 'validee';
                 } else {
-                    // Non sélectionné → rejeté
                     $dm->quantite_validee = 0;
                     $dm->status = 'rejetee';
                     if ($role === 'gestionnaire_stock') $dm->quantite_proposee_gestionnaire = null;
@@ -267,7 +247,6 @@ class DemandeMaterielController extends Controller
                 $dm->save();
             }
 
-            // Vérifier si la demande doit passer ou être rejetée
             $allRejected = $demande->materiels->every(fn($m) => $m->quantite_validee === 0);
             $hasValidatedMateriels = $demande->materiels->some(fn($m) => $m->quantite_validee > 0);
 
@@ -302,7 +281,6 @@ class DemandeMaterielController extends Controller
                 }
             }
         } else {
-            // Si la demande entière est rejetée
             $demande->status = 'rejetee';
             foreach ($demande->materiels as $dm) {
                 $dm->quantite_validee = 0;
@@ -321,9 +299,6 @@ class DemandeMaterielController extends Controller
         ]);
     }
 
-    /**
-     * Validation par matériel spécifique
-     */
     public function validateMateriel(Request $request, $id, $materielId)
     {
         return $this->validateMaterielByRole($request, $id, $materielId, $request->user()->role);
@@ -339,9 +314,6 @@ class DemandeMaterielController extends Controller
         return $this->validateMaterielByRole($request, $id, $materielId, 'secretaire_executif');
     }
 
-    /**
-     * Validation par matériel selon rôle
-     */
     private function validateMaterielByRole(Request $request, $demandeId, $materielId, $role)
     {
         $user = $request->user();
@@ -353,7 +325,6 @@ class DemandeMaterielController extends Controller
             'quantite_demandee' => 'nullable|integer|min:1'
         ]);
 
-        // Normaliser les statuts
         $statusMap = [
             'validé' => 'validee',
             'rejeté' => 'rejetee'
@@ -377,7 +348,6 @@ class DemandeMaterielController extends Controller
         }
 
         if ($validated['status'] === 'validee') {
-            // Si gestionnaire_stock ou daaf, utiliser la quantité envoyée si elle existe, sinon garder la quantité demandée
             if (in_array($role, ['gestionnaire_stock', 'daaf'])) {
                 if (isset($validated['quantite_demandee'])) {
                     $dm->quantite_validee = $validated['quantite_demandee'];
@@ -388,7 +358,6 @@ class DemandeMaterielController extends Controller
                         $dm->quantite_validee_daaf = $validated['quantite_demandee'];
                     }
                 } else {
-                    // Si aucune quantité n'est envoyée, garder la quantité demandée et la mettre dans le champ approprié
                     $dm->quantite_validee = $dm->quantite_demandee;
                     if ($role === 'gestionnaire_stock') {
                         $dm->quantite_proposee_gestionnaire = $dm->quantite_demandee;
@@ -406,7 +375,6 @@ class DemandeMaterielController extends Controller
             $dm->status = 'rejetee';
         }
 
-        // $dm->commentaire = $validated['commentaire'] ?? null;
         $dm->{'date_validation_' . $role} = now();
         $dm->save();
 
@@ -422,13 +390,10 @@ class DemandeMaterielController extends Controller
         ];
 
         if ($allRejected) {
-            // Tous les matériels sont rejetés -> rejeter la demande
             $demande->status = 'rejetee';
         } elseif ($hasValidatedMateriels) {
-            // Au moins un matériel est validé (peut être tous ou une partie) -> passer à l'étape suivante
             $demande->status = $nextStatusMap[$role] ?? 'validee';
 
-            // Ajout automatique du daaf_id et secretaire_id si besoin
             if ($role === 'gestionnaire_stock') {
                 $daaf = User::where('role', 'daaf')->first();
                 if ($daaf) $demande->daaf_id = $daaf->id;
@@ -438,23 +403,8 @@ class DemandeMaterielController extends Controller
                 if ($secretaire) $demande->secretaire_id = $secretaire->id;
             }
         }
-        // Si aucun matériel n'est validé mais pas tous rejetés (cas impossible avec la logique actuelle),
-        // on garde le statut actuel
 
         $demande->save();
-
-        // if ($validated['status'] === 'validee') {
-        //     $demandeur = $demande->user;
-        //     if ($demandeur) {
-        //         $demandeur->notify(new DemandeValideeNotification($demande, $user->name, $role));
-        //     }
-        //     if ($role === 'secretaire_executif') {
-        //         $gestionnaireStock = User::where('role', 'gestionnaire_stock')->first();
-        //         if ($gestionnaireStock) {
-        //             $gestionnaireStock->notify(new LivraisonReadyNotification($demande, $user->name));
-        //         }
-        //     }
-        // }
 
         return response()->json([
             'status' => 'success',
@@ -463,9 +413,6 @@ class DemandeMaterielController extends Controller
         ]);
     }
 
-    /**
-     * Validation par matériel en batch
-     */
     public function batchValidateMateriels(Request $request, $demandeId)
     {
         $user = $request->user();
@@ -481,7 +428,6 @@ class DemandeMaterielController extends Controller
             'quantites.*' => 'nullable|integer|min:0',
         ]);
 
-        // Normaliser statut
         $statusMap = [
             'validé' => 'validee',
             'rejeté' => 'rejetee'
@@ -493,7 +439,6 @@ class DemandeMaterielController extends Controller
 
         foreach ($demande->materiels as $dm) {
             if (in_array($dm->materiel_id, $materielIdsValides)) {
-                // Sélectionné → validé
                 if ($role === 'gestionnaire_stock' && isset($validated['quantites'][$dm->materiel_id])) {
                     $dm->quantite_proposee_gestionnaire = $validated['quantites'][$dm->materiel_id];
                 }
@@ -505,7 +450,6 @@ class DemandeMaterielController extends Controller
                     : ($role === 'daaf' ? ($dm->quantite_validee_daaf ?? $dm->quantite_demandee) : $dm->quantite_demandee);
                 $dm->status = 'validee';
             } else {
-                // Non sélectionné → rejeté
                 $dm->quantite_validee = 0;
                 $dm->status = 'rejetee';
                 if ($role === 'gestionnaire_stock') $dm->quantite_proposee_gestionnaire = null;
@@ -516,7 +460,6 @@ class DemandeMaterielController extends Controller
             $dm->save();
         }
 
-        // Vérifier si tous rejetés ou passer à l'étape suivante
         $allRejected = $demande->materiels->every(fn($m) => $m->quantite_validee === 0);
         $hasValidatedMateriels = $demande->materiels->some(fn($m) => $m->quantite_validee > 0);
 
@@ -559,15 +502,6 @@ class DemandeMaterielController extends Controller
         ]);
     }
 
-    /**
-     * Validation finale par le secrétaire_exécutif
-     * Cette méthode valide définitivement la demande et déduit le stock
-     */
-    
-  /**
-   * Validation finale par le secrétaire exécutif
-   * Cette méthode valide définitivement la demande et déduit le stock de manière sécurisée
-   */
   public function validateBySecretaireExecutif($id)
   {
       DB::beginTransaction();
@@ -578,7 +512,6 @@ class DemandeMaterielController extends Controller
   
           \Log::info("=== Début validation secrétaire pour demande {$id} par utilisateur {$user->id} ===");
   
-          // Vérifier que la demande est dans le bon statut
           if ($demande->status !== 'en_attente_secretaire') {
               return response()->json([
                   'message' => 'La demande n\'est pas dans le statut attendu pour la validation secrétaire'
@@ -596,13 +529,11 @@ class DemandeMaterielController extends Controller
                   continue;
               }
   
-              // Quantité validée par la DAAF
               $quantiteValidee = $dm->quantite_validee_daaf ?? 0;
   
               if ($quantiteValidee > 0) {
-                  // Vérifier le stock disponible avec une requête sécurisée
                   $materielActualise = Materiel::where('id', $materiel->id)
-                      ->lockForUpdate() // Verrouiller le matériel pour éviter les conflits
+                      ->lockForUpdate() 
                       ->first();
   
                   if (!$materielActualise) {
@@ -610,7 +541,6 @@ class DemandeMaterielController extends Controller
                   }
   
                   if ($materielActualise->quantite_disponible >= $quantiteValidee) {
-                      // Déduction sécurisée du stock
                       $nouveauStock = $materielActualise->quantite_disponible - $quantiteValidee;
                       
                       $miseAJourStock = Materiel::where('id', $materielActualise->id)
@@ -620,7 +550,6 @@ class DemandeMaterielController extends Controller
                           throw new \Exception("Échec de la mise à jour du stock pour {$materiel->nom}");
                       }
   
-                      // Mettre à jour le DemandeMateriel
                       $dm->quantite_validee = $quantiteValidee;
                       $dm->status = 'validee';
                       $dm->date_validation_secretaire = now();
@@ -639,7 +568,6 @@ class DemandeMaterielController extends Controller
   
                       \Log::info("✅ Stock mis à jour pour {$materiel->nom} : {$materielActualise->quantite_disponible} → {$nouveauStock}");
                   } else {
-                      // Stock insuffisant
                       $dm->quantite_validee = 0;
                       $dm->status = 'rejetee';
                       $dm->date_validation_secretaire = now();
@@ -658,7 +586,6 @@ class DemandeMaterielController extends Controller
                       \Log::warning("❌ Stock insuffisant pour {$materiel->nom} : demandé {$quantiteValidee}, disponible {$materielActualise->quantite_disponible}");
                   }
               } else {
-                  // Quantité non validée par DAAF
                   $dm->quantite_validee = 0;
                   $dm->status = 'rejetee';
                   $dm->date_validation_secretaire = now();
@@ -678,7 +605,6 @@ class DemandeMaterielController extends Controller
               }
           }
   
-          // Mettre à jour la demande avec le statut final et l'ID du secrétaire
           $demande->status = 'validee_finale';
           $demande->secretaire_id = $user->id;
           $demande->date_validation_secretaire = now();

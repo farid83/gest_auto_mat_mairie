@@ -21,24 +21,20 @@ const Dashboard = () => {
   const { user, hasAnyRole } = useAuth();
   const navigate = useNavigate();
   
-  // Récupération des statistiques via API
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
 
-  // Statistiques par défaut en cas d'erreur ou de chargement
   const defaultStats = {
     requests_total: 0,
     requests_pending: 0,
     materials_total: 0,
     materials_low_stock: 0,
     pending_validations: 0,
-    // notifications_unread: 0,
     user_requests_total: 0,
     user_requests_pending: 0
   };
 
   const currentStats = stats || defaultStats;
 
-  // Statistiques par rôle
   const getRoleSpecificStats = () => {
     const roleStats = [];
 
@@ -73,7 +69,6 @@ const Dashboard = () => {
       });
     }
 
-    // Ajouter les statistiques des demandes de l'utilisateur
     roleStats.push(
       {
         title: "Mes demandes totales",
@@ -92,7 +87,6 @@ const Dashboard = () => {
       }
     );
 
-    // Ajouter les statistiques générales pour les rôles appropriés
     if (hasAnyRole(['admin', 'gestionnaire_stock'])) {
       roleStats.push(
         {
@@ -104,17 +98,6 @@ const Dashboard = () => {
         }
       );
     }
-
-    // roleStats.push(
-    //   {
-    //     title: "Notifications",
-    //     value: currentStats.notifications_unread,
-    //     icon: Clock,
-    //     description: "Non lues",
-    //     color: "red",
-    //     urgent: currentStats.notifications_unread > 0
-    //   }
-    // );
 
     return roleStats;
   };
@@ -151,7 +134,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* En-tête */}
+
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -170,7 +153,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Cartes statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {roleStats.map((stat, index) => {
           const Icon = stat.icon;
@@ -211,7 +193,6 @@ const Dashboard = () => {
         })}
       </div>
 
-      {/* Autres sections du dashboard peuvent être ajoutées ici */}
       
     </div>
   );

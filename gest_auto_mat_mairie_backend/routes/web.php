@@ -4,11 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-// Route::get('/', function () {
-//     return view('welcome');
-    
-// });
-
 use App\Models\User;
 
 
@@ -26,13 +21,6 @@ Route::get('/sanctum/csrf-cookie', function () {
 Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show'])
     ->middleware('web')
     ->name('sanctum.csrf-cookie');
-
-// Route::post('/auth/logout', function (Request $request) {
-//     Auth::guard('web')->logout();
-//     $request->session()->invalidate();
-//     $request->session()->regenerateToken();
-//     return response()->noContent(); // 204
-// })->middleware('auth');
 
 
 

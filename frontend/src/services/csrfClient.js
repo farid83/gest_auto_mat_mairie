@@ -1,10 +1,10 @@
-// csrfClient.js
+
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const csrfClient = axios.create({
-  baseURL: BACKEND_URL, // 🟢 pas de `/api`
+  baseURL: BACKEND_URL, 
   withCredentials: true,
   headers: {
     'Accept': 'application/json',

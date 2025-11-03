@@ -10,9 +10,6 @@ use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = Service::query();
@@ -32,9 +29,7 @@ class ServiceController extends Controller
         return response()->json($services);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -51,18 +46,12 @@ class ServiceController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         $service = Service::with(['direction', 'users'])->findOrFail($id);
         return response()->json($service);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $service = Service::findOrFail($id);
@@ -81,14 +70,10 @@ class ServiceController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $service = Service::findOrFail($id);
         
-        // Check if service has related users
         if ($service->users()->count() > 0) {
             return response()->json([
                 'message' => 'Impossible de supprimer ce service car il contient encore des utilisateurs',
@@ -102,9 +87,6 @@ class ServiceController extends Controller
         ]);
     }
 
-    /**
-     * Get services by direction
-     */
     public function getByDirection($directionId)
     {
         $services = Service::where('direction_id', $directionId)

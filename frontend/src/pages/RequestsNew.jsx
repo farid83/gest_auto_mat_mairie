@@ -50,23 +50,20 @@ const RequestsNew = () => {
     setMaterials(prev => prev.filter((_, i) => i !== idx));
   };
 
-  // Fonction pour filtrer les suggestions en fonction de la saisie
   const getSuggestions = (value) => {
     if (!value || !materialsData) return [];
     
     const inputValue = value.toLowerCase();
     return materialsData.filter(material =>
       material.nom.toLowerCase().includes(inputValue)
-    ).slice(0, 5); // Limiter à 5 suggestions
+    ).slice(0, 5);
   };
 
-  // Fonction pour gérer le changement de valeur dans le champ matériel
 const handleMaterialChange = (idx, value) => {
   setMaterials((prev) =>
     prev.map((item, i) => (i === idx ? { ...item, material: value } : item))
   );
 
-// Mettre à jour les suggestions
   const newSuggestions = getSuggestions(value);
   setSuggestions((prev) => ({ ...prev, [idx]: newSuggestions }));
   setShowSuggestions((prev) => ({ ...prev, [idx]: newSuggestions.length > 0 }));
@@ -74,7 +71,6 @@ const handleMaterialChange = (idx, value) => {
 };
 
 
-  // Fonction pour gérer la sélection d'une suggestion
 const handleSuggestionClick = (idx, suggestion) => {
   setMaterials((prev) =>
     prev.map((item, i) =>
@@ -86,7 +82,6 @@ const handleSuggestionClick = (idx, suggestion) => {
 };
 
 
-  // Fonction pour gérer les événements clavier
   const handleKeyDown = (idx, e) => {
     if (!showSuggestions) return;
 
@@ -112,10 +107,9 @@ const handleSuggestionClick = (idx, suggestion) => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (isSubmitting) return; // protection double clic
+  if (isSubmitting) return;
   setIsSubmitting(true);
 
-  // Vérification basique des quantités
   for (let item of materials) {
     if (item.quantity <= 0) {
       toast.error('La quantité doit être supérieure à 0');
@@ -123,9 +117,8 @@ const handleSubmit = async (e) => {
     }
   }
 
-  // Récupération du token depuis le localStorage
   const user = JSON.parse(localStorage.getItem('user'));
-  const token = localStorage.getItem('token'); // pas user?.token
+  const token = localStorage.getItem('token');
 
 
   console.log('User stocké :', user);
@@ -137,12 +130,11 @@ console.log('Token :', token);
     return;
   }
 
-  // Construction du payload
   const payload = {
     materiels: materials.map(item => {
       const materiel = materialsData.find(m => m.nom === item.material);
       return {
-        materiel_id: materiel?.id, // Ajout de l'ID pour Laravel
+        materiel_id: materiel?.id, 
         quantite: parseInt(item.quantity, 10),
         justification: item.justification
       };
@@ -172,7 +164,7 @@ console.log('Token :', token);
     console.log('Demande créée avec succès :', data);
     toast.success('Demande créée avec succès !');
 
-    // Réinitialiser le formulaire
+
     setMaterials([{ material: '', quantity: '', justification: '' }]);
   } catch (error) {
     console.error('Erreur fetch :', error);
@@ -187,7 +179,6 @@ console.log('Token :', token);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="w-full max-w-2xl space-y-6">
-        {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
@@ -283,7 +274,6 @@ console.log('Token :', token);
                       placeholder="Motif"
                       value={item.justification}
                       onChange={e => handleChange(idx, e)}
-                      // required
                       className="col-span-5 h-11"
                     />
                     <div className="col-span-1 flex items-center justify-center">

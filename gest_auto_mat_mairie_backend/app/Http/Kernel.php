@@ -13,23 +13,13 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Fruitcake\Cors\HandleCors;
 class Kernel extends HttpKernel
 {
-    /**
-     * The application's global HTTP middleware stack.
-     *
-     * These run during every request.
-     */
     protected $middleware = [
-        // Laravel 12 gère CORS automatiquement via Symfony — pas besoin de HandleCors ici
         \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
-        // \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class, // À ajouter si elle est dispo
         \Fruitcake\Cors\HandleCors::class,
     ];
 
-    /**
-     * The application's route middleware groups.
-     */
     protected $middlewareGroups = [
         'web' => [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
@@ -51,9 +41,6 @@ class Kernel extends HttpKernel
         ],
     ];
 
-    /**
-     * The application's route middleware.
-     */
     protected $routeMiddleware = [
         'auth' => Authenticate::class,
         'verified' => EnsureEmailIsVerified::class,

@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\DirectionController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\DemandeController;
 use App\Http\Controllers\Api\DemandeMaterielController;
-// use App\Http\Controllers\Api\LivraisonController;
 use App\Http\Controllers\Api\MouvementStockController;
 use App\Http\Controllers\Api\PingController;
 use App\Http\Controllers\Auth\LoginController;
@@ -19,15 +18,9 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Service;
 
-/*
-|--------------------------------------------------------------------------
-| Routes publiques
-|--------------------------------------------------------------------------
-*/
 
 Route::get('/ping', [PingController::class, 'ping']);
 
-// Authentification
 Route::post('/login', function (Request $request) {
     $request->validate([
         'email' => 'required|email',
@@ -40,7 +33,6 @@ Route::post('/login', function (Request $request) {
         return response()->json(['message' => 'Identifiants invalides'], 401);
     }
 
-    // Création du token Sanctum
     $token = $user->createToken('API Token')->plainTextToken;
 
     return response()->json([
@@ -49,34 +41,19 @@ Route::post('/login', function (Request $request) {
     ]);
 });
 
-// Route::post('/register', [RegisterController::class, 'register']);
-
-/*
-|--------------------------------------------------------------------------
-| Routes protégées Sanctum
-|--------------------------------------------------------------------------
-*/
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
-    // Route::apiResource('materiels', MaterielController::class);
     Route::apiResource('directions', DirectionController::class);
     Route::apiResource('services', ServiceController::class);
     Route::apiResource('demandes', DemandeController::class);
-    // Route::apiResource('demande-materiels', DemandeMaterielController::class);
-    // Route::apiResource('livraisons', LivraisonController::class);
     
-    // Routes supplémentaires pour les livraisons
-    // Route::post('/livraisons/{id}/mark-delivered', [LivraisonController::class, 'markAsDelivered']);
     Route::apiResource('mouvements-stock', MouvementStockController::class);
 
-    // Tableau de bord
     Route::get('dashboard/stats', [DashboardController::class, 'getStats']);
 
-    // --- ajouter la route pour mise à jour du mot de passe courant ---
     Route::post('/me/password', [UserController::class, 'updateMyPassword']);
 });
 
-// Routes utilisateurs supplémentaires
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
@@ -85,7 +62,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::get('/users/roles', [UserController::class, 'getRoles']);
     Route::get('/users/stats', [UserController::class, 'getStats']);
-    // Route dédiée pour mise à jour du mot de passe (POST ou PUT)
     Route::post('/users/{id}/password', [UserController::class, 'updatePassword']);
 });
 
@@ -94,16 +70,12 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 });
 
 
-// Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
-//     return $request->user();
-// });
-
 Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
     return response()->json($request->user());
 });
 
 Route::middleware('auth:sanctum')->post('/auth/logout', function (Request $request) {
-    $request->user()->currentAccessToken()->delete(); // ou Auth::logout() selon ta config
+    $request->user()->currentAccessToken()->delete();
     return response()->json(['message' => 'Déconnecté avec succès']);
 });
 
@@ -113,7 +85,6 @@ Route::get('/services', function () {
 
 Route::post('register', [RegisterController::class, 'register']);
 
-// Route::resource('materiels', MaterielController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/materiels', [MaterielController::class, 'index']);
@@ -125,21 +96,9 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::post('/materiels/{materiel}/sortie', [MaterielController::class, 'sortirStock']);
 Route::post('/materiels/{materiel}/entree', [MaterielController::class, 'entrerStock']);
 
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::get('/mouvements-stock', [MouvementController::class, 'index']);
-// });
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/demandes', [DemandeController::class, 'store']);
 });
-
-// Route::middleware('auth:sanctum')->get('/demande_materiels', [DemandeMaterielController::class, 'index']);
-// Route::middleware('auth:sanctum')->get('/demande_materiels/validation', [DemandeMaterielController::class, 'getRequestsForValidation']);
-// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/validate', [DemandeMaterielController::class, 'validateRequest']);
-// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/validate', [DemandeMaterielController::class, 'validateMateriel']);
-// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/daaf-validate', [DemandeMaterielController::class, 'validateMaterielByDaaf']);
-// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/materiels/{materielId}/secretaire-validate', [DemandeMaterielController::class, 'validateMaterielBySecretaire']);
-// Route::middleware('auth:sanctum')->post('/demande_materiels/{id}/stock-action', [DemandeMaterielController::class, 'validateRequest']);
 
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -153,56 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/demande-materiels/{id}/stock-action', [DemandeMaterielController::class, 'validateRequest']);
     Route::post('/demande-materiels/{demandeId}/materiels/batch-validate', [DemandeMaterielController::class, 'batchValidateMateriels']);
     
-    // Routes pour la validation finale par le secrétaire_exécutif
     Route::post('/demande-materiels/{id}/secretaire-executif-validate', [DemandeMaterielController::class, 'validateBySecretaireExecutif']);
-    // Route::get('/demande-materiels/ready-to-deliver', [DemandeMaterielController::class, 'getReadyToDeliver']);
 });
-
-
-
-// Routes pour les notifications
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::get('/notifications', function (Request $request) {
-//         return $request->user()->notifications()->latest()->get();
-//     });
-
-//     Route::get('/notifications/unread', function (Request $request) {
-//         return $request->user()->unreadNotifications()->latest()->get();
-//     });
-
-//     Route::post('/notifications/{notification}/mark-as-read', function (Request $request, $notification) {
-//         $notif = $request->user()->notifications()->find($notification);
-//         if ($notif) {
-//             $notif->markAsRead();
-//             return response()->json(['message' => 'Notification marquée comme lue']);
-//         }
-//         return response()->json(['message' => 'Notification non trouvée'], 404);
-//     });
-
-
-//     Route::post('/notifications/mark-all-read', function (Request $request) {
-//         $request->user()->notifications()->update(['read_at' => now()]);
-//         return response()->json(['message' => 'Toutes les notifications marquées comme lues']);
-//     });
-// });
-
-// Route::middleware('auth:sanctum')->group(function () {
-//     // Supprimer une notification individuelle
-//     Route::delete('/notifications/{notification}', function (Request $request, $notification) {
-//         $notif = $request->user()->notifications()->find($notification);
-//         if ($notif) {
-//             $notif->delete();
-//             return response()->json(['message' => 'Notification supprimée']);
-//         }
-//         return response()->json(['message' => 'Notification non trouvée'], 404);
-//     });
-
-//     // Supprimer toutes les notifications
-//     Route::delete('/notifications', function (Request $request) {
-//         $request->user()->notifications()->delete();
-//         return response()->json(['message' => 'Toutes les notifications supprimées']);
-//     });
-// });
 
 Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function () {
     Route::get('/directeur-only', function () {
@@ -210,7 +121,6 @@ Route::middleware(['auth:sanctum', EnsureUserIsDirector::class])->group(function
     });
 });
 
-// Routes supplémentaires pour les services
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/services/direction/{directionId}', [ServiceController::class, 'getByDirection']);
 });

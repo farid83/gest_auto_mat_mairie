@@ -1,8 +1,6 @@
 import React from 'react';
 import InventoryTable from '../components/Inventory/InventoryTable';
 import StockMovementsTable from '../components/StockMovements/StockMovementsTable';
-// import ReadyToDeliverTable from '../components/ReadyToDeliver/ReadyToDeliverTable';
-// import DeliveriesTable from '../components/Deliveries/DeliveriesTable';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 
 const MaterialsManagement = () => (
@@ -13,7 +11,7 @@ const MaterialsManagement = () => (
           <TabsTrigger value="inventory">Inventaire</TabsTrigger>
           <TabsTrigger value="movements">Mouvements</TabsTrigger>
           <TabsTrigger value="ready">Prêts à livrer</TabsTrigger>
-          {/* <TabsTrigger value="deliveries">Livraisons</TabsTrigger> */}
+
         </TabsList>
         <TabsContent value="inventory">
           <InventoryTable />
@@ -21,16 +19,9 @@ const MaterialsManagement = () => (
         <TabsContent value="movements">
           <StockMovementsTable />
         </TabsContent>
-        {/* <TabsContent value="ready">
-          <ReadyToDeliverTable />
-        </TabsContent> */}
-        {/* <TabsContent value="deliveries">
-          <DeliveriesTable />
-        </TabsContent> */}
       </Tabs>
     </div>
   </div>
 );
 
 export default MaterialsManagement;
-// filepath: c:\Users\ANFAR-Tech\gest_auto_mat_mairie\frontend\src\pages\MaterialsManagement.jsx

@@ -9,18 +9,12 @@ use Illuminate\Validation\Rule;
 
 class DirectionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $directions = Direction::withCount('services', 'users')->get();
         return response()->json($directions);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -36,18 +30,12 @@ class DirectionController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         $direction = Direction::with(['services', 'users'])->findOrFail($id);
         return response()->json($direction);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $direction = Direction::findOrFail($id);
@@ -65,14 +53,10 @@ class DirectionController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $direction = Direction::findOrFail($id);
         
-        // Check if direction has related services or users
         if ($direction->services()->count() > 0 || $direction->users()->count() > 0) {
             return response()->json([
                 'message' => 'Impossible de supprimer cette direction car elle contient encore des services ou des utilisateurs',
