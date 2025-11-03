@@ -78,7 +78,7 @@ setRequests(sortedDemandes);
     return mat.quantite_validee > 0 ? 'validee' : 'rejetee';
   };
 
-  const handleBatchAction = async (demandeId, materielIds, action) => {
+const handleBatchAction = async (demandeId, materielIds, action) => {
     setLoading(true);
     try {
       // Si on est secrétaire exécutif et que l'on valide → appeler l'endpoint spécifique
@@ -102,20 +102,28 @@ setRequests(sortedDemandes);
         toast({ title: 'Succès', description: 'Demande validée et stock mis à jour' });
         setSelectedMateriels([]);
         setQuantities({});
+        setSelected(null);
         await fetchRequests();
         return;
       }
 
-      // Prépare les quantités à envoyer (comportement inchangé pour les autres rôles)
+      // Prépare les quantités à envoyer
       let quantites = {};
-      if (['gestionnaire_stock', 'daaf'].includes(role) && action === 'validé') {
+      if (['gestionnaire_stock', 'daaf'].includes(role)) {
         materielIds.forEach(id => {
           const requested = selected.materials.find(m => m.materiel_id === id)?.quantity ?? 1;
           const qState = quantities[id];
-          const parsed = (qState !== undefined && qState !== null && qState !== '')
-            ? parseInt(qState, 10)
-            : requested;
-          quantites[id] = Number.isNaN(parsed) ? requested : parsed;
+          
+          if (action === 'validé') {
+            // Pour validation: utiliser la quantité saisie ou la quantité demandée
+            const parsed = (qState !== undefined && qState !== null && qState !== '')
+              ? parseInt(qState, 10)
+              : requested;
+            quantites[id] = Number.isNaN(parsed) ? requested : parsed;
+          } else {
+            // Pour rejet: quantité à 0
+            quantites[id] = 0;
+          }
         });
       }
 
@@ -140,10 +148,12 @@ setRequests(sortedDemandes);
       if (!response.ok) throw new Error('Erreur sur la validation par lot');
       await response.json();
 
-      toast({ title: 'Succès', description: `Sélection ${action} avec succès` });
+      const actionText = action === 'validé' ? 'validée' : 'rejetée';
+      toast({ title: 'Succès', description: `Sélection ${actionText} avec succès` });
       setSelectedMateriels([]);
       setQuantities({});
-      fetchRequests();
+      setSelected(null);
+      await fetchRequests();
     } catch (error) {
       console.error(error);
       toast({
