@@ -118,7 +118,7 @@ const handleSort = (field) => {
     } else {
       setSelectedRequests([]);
     }
-  };
+  }; 
 
   const handleSelectOne = (id, checked) => {
     if (checked) {

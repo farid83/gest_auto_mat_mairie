@@ -56,7 +56,7 @@ class DashboardController extends Controller
         if ($user) {
             $user_requests_total = Demande::where('user_id', $user->id)->count();
             $user_requests_pending = Demande::where('user_id', $user->id)
-                ->where('status', 'en_attente')
+                ->whereIn('status', ['en_attente', 'en_attente_daaf', 'en_attente_secretaire', 'en_attente_stock'])
                 ->count();
         }
 
