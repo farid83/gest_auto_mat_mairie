@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { useAuth } from '../../contexts/AuthContext';
 import { mockNotifications, roleLabels } from '../../services/mock';
 import { Toaster, toast } from 'sonner'; // <-- ajouté `toast` pour notifications
+import SessionTimer from '../common/SessionTimer';
 
 
 // Ajouter imports Dialog et Input
@@ -232,6 +233,8 @@ const Layout = () => {
         <div className="flex-1 flex flex-col min-h-screen">
           {/* Header */}
           <header className="bg-card border-b border-border px-4 lg:px-6 h-16 flex items-center justify-between">
+            {/* Session Timer */}
+            <SessionTimer />
             <div className="flex items-center space-x-4">
               {/* Mobile Menu Button */}
               <Sheet>

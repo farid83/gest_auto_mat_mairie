@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authService } from '../services/api';
+import { useSessionWarning } from '../hooks/useSessionWarning';
 
 const AuthContext = createContext();
 
@@ -48,6 +49,8 @@ const initialState = {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+      const { triggerWarning } = useSessionWarning();
+
   // Vérif session au montage
   useEffect(() => {
     const initAuth = async () => {
@@ -91,64 +94,78 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // // Gestion de la déconnexion automatique
-  // useEffect(() => {
-  //   // Déconnexion après 10 minutes d'inactivité
-  //   const inactivityTimeout = setTimeout(() => {
-  //     if (state.isAuthenticated) {
-  //       console.log("Déconnexion automatique après 10 minutes d'inactivité");
-  //       logout();
-  //     }
-  //   }, 10 * 60 * 1000); // 10 minutes
+  // Gestion de la déconnexion automatique après 10 minutes d'inactivité
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
 
-  //   // Écouteur d'événements pour réinitialiser le timer d'inactivité
-  //   const resetInactivityTimer = () => {
-  //     clearTimeout(inactivityTimeout);
-  //     // Redémarre le timer
-  //     setTimeout(() => {
-  //       if (state.isAuthenticated) {
-  //         console.log("Déconnexion automatique après 10 minutes d'inactivité");
-  //         logout();
-  //       }
-  //     }, 10 * 60 * 1000);
-  //   };
+    let inactivityTimeout;
+    let warningTimeout;
+    const INACTIVITY_TIME = 10 * 60 * 1000; // 10 minutes
+    const WARNING_TIME = 9 * 60 * 1000; // 9 minutes (avertissement 1 minute avant)
 
-  //   // Écouteurs d'événements d'activité
-  //   window.addEventListener('mousemove', resetInactivityTimer);
-  //   window.addEventListener('keypress', resetInactivityTimer);
-  //   window.addEventListener('click', resetInactivityTimer);
-  //   window.addEventListener('scroll', resetInactivityTimer);
-  //   window.addEventListener('touchstart', resetInactivityTimer);
 
-  //   // Nettoyage des écouteurs au démontage
-  //   return () => {
-  //     clearTimeout(inactivityTimeout);
-  //     window.removeEventListener('mousemove', resetInactivityTimer);
-  //     window.removeEventListener('keypress', resetInactivityTimer);
-  //     window.removeEventListener('click', resetInactivityTimer);
-  //     window.removeEventListener('scroll', resetInactivityTimer);
-  //     window.removeEventListener('touchstart', resetInactivityTimer);
-  //   };
-  // }, [state.isAuthenticated]);
+    const logout = () => {
+      console.log("Déconnexion automatique après 10 minutes d'inactivité");
+      dispatch({ type: 'LOGOUT' });
+    };
+
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimeout);
+      clearTimeout(warningTimeout);
+      
+      // Avertissement après 9 minutes
+      warningTimeout = setTimeout(() => {
+        console.log("⚠️ Votre session va expirer dans 1 minute");
+        triggerWarning();
+      }, WARNING_TIME);
+      
+      // Déconnexion après 10 minutes
+      inactivityTimeout = setTimeout(logout, INACTIVITY_TIME);
+    };
+
+    // Événements qui indiquent une activité utilisateur
+    const activityEvents = [
+      'mousedown', 'mousemove', 'keypress',
+      'scroll', 'touchstart', 'click'
+    ];
+
+    // Ajouter les écouteurs d'événements
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetInactivityTimer, { passive: true });
+    });
+
+    // Initialiser le timer
+    resetInactivityTimer();
+
+    // Nettoyage des écouteurs au démontage ou lors de la déconnexion
+    return () => {
+      clearTimeout(inactivityTimeout);
+      clearTimeout(warningTimeout);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [state.isAuthenticated]);
 
   // Gestion de la fermeture/rafraîchissement de la page
-  // useEffect(() => {
-  //   const handleBeforeUnload = (event) => {
-  //     if (state.isAuthenticated) {
-  //       console.log("Déconnexion automatique lors de la fermeture/rafraîchissement de la page");
-  //       // On ne peut pas appeler logout() directement car la page se ferme
-  //       // On marque simplement la session comme expirée
-  //       localStorage.removeItem('token');
-  //       localStorage.removeItem('user');
-  //     }
-  //   };
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (state.isAuthenticated) {
+        console.log("Déconnexion automatique lors de la fermeture/rafraîchissement de la page");
+        // On ne peut pas appeler logout() directement car la page se ferme
+        // On marque simplement la session comme expirée
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('sessionId');
+      }
+    };
 
-  //   window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
-  //   return () => {
-  //     window.removeEventListener('beforeunload', handleBeforeUnload);
-  //   };
-  // }, [state.isAuthenticated]);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [state.isAuthenticated]);
 
 
 //   useEffect(() => {
