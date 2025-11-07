@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { usersService, directionsService, servicesService } from '../../services/api';
+import { toast } from 'sonner';
 
 const roleOptions = [
   { value: 'user', label: 'user' },
@@ -34,7 +35,6 @@ const UserForm = ({ open, onClose, onSave, initialData, isLoading }) => {
     queryKey: ['services'],
     queryFn: servicesService.getServices,
   });
-  // Initialiser le formulaire à l'ouverture ou au changement de initialData
 
   useEffect(() => {
     if (initialData) {
@@ -70,12 +70,6 @@ const UserForm = ({ open, onClose, onSave, initialData, isLoading }) => {
   const handleRoleChange = (value) => setForm((prev) => ({ ...prev, role: value }));
   const handleDirectionChange = (value) => setForm((prev) => ({ ...prev, service_id: value }));
 
-  /**
-   * NOTE important :
-   * - services peut être soit un tableau (retour direct response.data),
-   *   soit un objet { data: [...] } selon la forme renvoyée par l'API.
-   * - On normalise ici en servicesList pour éviter les erreurs de type.
-   */
   const servicesList = Array.isArray(services) ? services : (services?.data ?? []);
 
   const handleSubmit = async (e) => {
@@ -87,6 +81,7 @@ const UserForm = ({ open, onClose, onSave, initialData, isLoading }) => {
       // Validation mot de passe si rempli
       if (form.password && form.password.length < 8) {
         setErrors({ password: 'Le mot de passe doit contenir au moins 8 caractères.' });
+        toast.error('Le mot de passe doit contenir au moins 8 caractères.');
         setIsSubmitting(false);
         return;
       }
@@ -101,41 +96,60 @@ const UserForm = ({ open, onClose, onSave, initialData, isLoading }) => {
           // si mot de passe fourni, appeler endpoint dédié
           try {
             await usersService.updatePassword(initialData.id, formData.password);
-            // on retire le password des autres données pour éviter double-hash côté update
+            toast.success('Mot de passe mis à jour avec succès !');
             delete formData.password;
           } catch (pwErr) {
-            setErrors({ password: pwErr?.message || 'Erreur lors de la mise à jour du mot de passe.' });
+            const errorMsg = pwErr?.message || 'Erreur lors de la mise à jour du mot de passe.';
+            setErrors({ password: errorMsg });
+            toast.error(errorMsg);
             setIsSubmitting(false);
             return;
           }
         }
+        
+        await onSave(formData);
+        toast.success('Utilisateur modifié avec succès !');
       } else {
         // création : password requis
         if (!formData.password) {
           setErrors({ password: 'Le mot de passe est requis.' });
+          toast.error('Le mot de passe est requis.');
           setIsSubmitting(false);
           return;
         }
+        
+        await onSave(formData);
+        toast.success('Utilisateur ajouté avec succès !');
       }
 
-      await onSave(formData);
+      // Réinitialiser le formulaire après succès
+      setForm({
+        name: '',
+        email: '',
+        password: '',
+        role: 'user',
+        active: true,
+        service_id: undefined,
+      });
+
+      onClose();
     } catch (err) {
       console.error('Erreur lors de la soumission du formulaire utilisateur:', err);
-      setErrors({ form: err?.message || 'Erreur lors de la soumission.' });
+      const errorMsg = err?.message || 'Erreur lors de la soumission.';
+      setErrors({ form: errorMsg });
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    // Utiliser DialogDescription (fournit la description accessible attendue)
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Modifier un utilisateur' : 'Ajouter un utilisateur'}</DialogTitle>
         </DialogHeader>
 
-        {/* DialogDescription gère aria-describedby pour DialogContent => supprime le warning */}
         <DialogDescription className="sr-only">
           Formulaire pour créer ou modifier un utilisateur. Laisser le mot de passe vide pour ne pas le modifier.
         </DialogDescription>
@@ -161,7 +175,6 @@ const UserForm = ({ open, onClose, onSave, initialData, isLoading }) => {
             required
           />
 
-          {/* Champ mot de passe : requis seulement à la création */}
           <Input
             name="password"
             label={initialData ? 'Mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe'}
@@ -186,9 +199,6 @@ const UserForm = ({ open, onClose, onSave, initialData, isLoading }) => {
             </SelectContent>
           </Select>
 
-          {/* Liste des services (on utilise servicesList normalisé)
-                        Remarque: on force value à chaîne vide si undefined pour éviter warnings contrôlé/non contrôlé.
-                    */}
           <Select
             value={form.service_id ? String(form.service_id) : ''}
             onValueChange={(value) => setForm((prev) => ({ ...prev, service_id: Number(value) }))}

@@ -10,6 +10,7 @@ import MaterialForm from './MaterialForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { materialsService, setMaterialsChangeCallback } from '../../services/api';
+import { Loader2 } from 'lucide-react';
 
 const stateColors = {
     Bon: 'bg-green-100 text-green-800',
@@ -18,37 +19,38 @@ const stateColors = {
     HS: 'bg-red-100 text-red-800',
 };
 
-
 const InventoryTable = () => {
     const [inventory, setInventory] = useState([]);
     const [formOpen, setFormOpen] = useState(false);
     const [editMaterial, setEditMaterial] = useState(null);
-    const [sortOrder, setSortOrder] = useState('asc'); // 'asc' ou 'desc'
-    const [searchTerm, setSearchTerm] = useState(''); // Pour la recherche
-    const { user, hasAnyRole } = useAuth(); // 🔹 Récupérer les informations d'authentification
-
+    const [sortOrder, setSortOrder] = useState('asc');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isLoading, setIsLoading] = useState(false); // 🔹 État de chargement
+    const { user, hasAnyRole } = useAuth();
 
     // 🔹 Charger les matériels depuis l'API
     const fetchInventory = async () => {
+        setIsLoading(true); // 🔹 Début du chargement
         try {
             const response = await materialsService.getMaterials();
             setInventory(response.data || response);
         } catch (error) {
             console.error('Erreur lors du chargement de l\'inventaire :', error);
+            toast.error('Erreur lors du chargement de l\'inventaire');
+        } finally {
+            setIsLoading(false); // 🔹 Fin du chargement
         }
     };
 
     useEffect(() => {
         fetchInventory();
 
-          // Enregistre le callback pour refresh auto
-    setMaterialsChangeCallback(fetchInventory);
+        // Enregistre le callback pour refresh auto
+        setMaterialsChangeCallback(fetchInventory);
 
-    // 3️⃣ Nettoyage à la désactivation du composant
-    return () => setMaterialsChangeCallback(null);
+        // Nettoyage à la désactivation du composant
+        return () => setMaterialsChangeCallback(null);
     }, []);
-
-
 
     // 🔹 Fonction de tri par nom
     const sortByName = () => {
@@ -78,29 +80,25 @@ const InventoryTable = () => {
         return result;
     };
 
-   
-    
-
     // 🔹 Ajouter ou éditer un matériel
- const handleSave = async (materialData) => {
-    try {
-        if (editMaterial) {
-            await materialsService.updateMaterial(editMaterial.id, materialData);
-            toast.success('Matériel modifié avec succès !');
-        } else {
-            await materialsService.createMaterial(materialData);
-            toast.success('Matériel ajouté avec succès !');
+    const handleSave = async (materialData) => {
+        try {
+            if (editMaterial) {
+                await materialsService.updateMaterial(editMaterial.id, materialData);
+                toast.success('Matériel modifié avec succès !');
+            } else {
+                await materialsService.createMaterial(materialData);
+                toast.success('Matériel ajouté avec succès !');
+            }
+
+            await fetchInventory();
+            setFormOpen(false);
+
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde :', error);
+            toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
         }
-
-        await fetchInventory();
-        setFormOpen(false);
-
-    } catch (error) {
-        console.error('Erreur lors de la sauvegarde :', error);
-        toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
-        // ⛔ Pas de fetchInventory ici, sinon l'UI se rafraîchit à tort
-    }
-};
+    };
 
     // 🔹 Supprimer un matériel
     const handleDelete = async (id) => {
@@ -197,53 +195,67 @@ const InventoryTable = () => {
                 </div>
             </CardHeader>
             <CardContent>
-                <Table className="">
-                    <thead>
-                        <tr className="text-center">
-                            <th className="text-center">Nom</th>
-                            <th className="text-center">Catégorie</th>
-                            <th className="text-center">Quantité totale</th>
-                            <th className="text-center">Disponible</th>
-                            <th className="text-center">État</th>
-                            <th className="text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredAndSortedInventory().map((item) => (
-                            <tr key={item.id} className="text-center">
-                                <td className="align-middle">{item.nom}</td>
-                                <td className="align-middle">{item.categorie}</td>
-                                <td className="align-middle">{item.quantite_totale}</td>
-                                <td className="align-middle">{item.quantite_disponible}</td>
-                                <td className="align-middle">
-                                    <Badge className={stateColors[item.etat] || 'bg-gray-100 text-gray-800'}>
-                                        {item.etat}
-                                    </Badge>
-                                </td>
-                                <td className="align-middle">
-                                      {canDelete && ( // 🔹 Afficher le bouton de suppression ou modification uniquement si l'utilisateur a le droit
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => { setEditMaterial(item); setFormOpen(true); }}
-                                    >
-                                        Modifier
-                                    </Button>
-                                    )}
-                                    {canDelete && ( // 🔹 Afficher le bouton de suppression uniquement si l'utilisateur a le droit
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() => handleDelete(item.id)}
-                                        >
-                                            Supprimer
-                                        </Button>
-                                    )}
-                                </td>
+                {/* 🔹 Affichage du loader pendant le chargement */}
+                {isLoading ? (
+                    <div className="flex flex-col items-center">
+                        <div className="flex justify-center py-8">
+                                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                      </div>
+                        <span className="ml-3 text-gray-600">Chargement des matériels...</span>
+                    </div>
+                ) : filteredAndSortedInventory().length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                        {searchTerm ? 'Aucun matériel trouvé pour cette recherche.' : 'Aucun matériel dans l\'inventaire.'}
+                    </div>
+                ) : (
+                    <Table className="">
+                        <thead>
+                            <tr className="text-center">
+                                <th className="text-center">Nom</th>
+                                <th className="text-center">Catégorie</th>
+                                <th className="text-center">Quantité totale</th>
+                                <th className="text-center">Disponible</th>
+                                <th className="text-center">État</th>
+                                <th className="text-center">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </Table>
+                        </thead>
+                        <tbody>
+                            {filteredAndSortedInventory().map((item) => (
+                                <tr key={item.id} className="text-center">
+                                    <td className="align-middle">{item.nom}</td>
+                                    <td className="align-middle">{item.categorie}</td>
+                                    <td className="align-middle">{item.quantite_totale}</td>
+                                    <td className="align-middle">{item.quantite_disponible}</td>
+                                    <td className="align-middle">
+                                        <Badge className={stateColors[item.etat] || 'bg-gray-100 text-gray-800'}>
+                                            {item.etat}
+                                        </Badge>
+                                    </td>
+                                    <td className="align-middle">
+                                        {canDelete && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => { setEditMaterial(item); setFormOpen(true); }}
+                                            >
+                                                Modifier
+                                            </Button>
+                                        )}
+                                        {canDelete && (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => handleDelete(item.id)}
+                                            >
+                                                Supprimer
+                                            </Button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
             </CardContent>
             <MaterialForm
                 open={formOpen}

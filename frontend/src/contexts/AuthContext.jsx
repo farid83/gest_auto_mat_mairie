@@ -49,7 +49,7 @@ const initialState = {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-      const { triggerWarning } = useSessionWarning();
+  const { triggerWarning } = useSessionWarning();
 
   // Vérif session au montage
   useEffect(() => {
@@ -112,13 +112,13 @@ export const AuthProvider = ({ children }) => {
     const resetInactivityTimer = () => {
       clearTimeout(inactivityTimeout);
       clearTimeout(warningTimeout);
-      
+
       // Avertissement après 9 minutes
       warningTimeout = setTimeout(() => {
         console.log("⚠️ Votre session va expirer dans 1 minute");
         triggerWarning();
       }, WARNING_TIME);
-      
+
       // Déconnexion après 10 minutes
       inactivityTimeout = setTimeout(logout, INACTIVITY_TIME);
     };
@@ -148,48 +148,48 @@ export const AuthProvider = ({ children }) => {
   }, [state.isAuthenticated]);
 
   // Gestion de la fermeture/rafraîchissement de la page
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (state.isAuthenticated) {
-        console.log("Déconnexion automatique lors de la fermeture/rafraîchissement de la page");
-        // On ne peut pas appeler logout() directement car la page se ferme
-        // On marque simplement la session comme expirée
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('sessionId');
-      }
-    };
+  // useEffect(() => {
+  //   const handleBeforeUnload = (event) => {
+  //     if (state.isAuthenticated) {
+  //       console.log("Déconnexion automatique lors de la fermeture/rafraîchissement de la page");
+  //       // On ne peut pas appeler logout() directement car la page se ferme
+  //       // On marque simplement la session comme expirée
+  //       localStorage.removeItem('token');
+  //       localStorage.removeItem('user');
+  //       localStorage.removeItem('sessionId');
+  //     }
+  //   };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  //   window.addEventListener('beforeunload', handleBeforeUnload);
 
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [state.isAuthenticated]);
+  //   return () => {
+  //     window.removeEventListener('beforeunload', handleBeforeUnload);
+  //   };
+  // }, [state.isAuthenticated]);
 
 
-//   useEffect(() => {
-//   const storedToken = localStorage.getItem('token');
-//   const storedUser  = localStorage.getItem('user');
+  //   useEffect(() => {
+  //   const storedToken = localStorage.getItem('token');
+  //   const storedUser  = localStorage.getItem('user');
 
-//   if (storedToken) {
-//     setIsLoading(true);
-//     axios.get('/api/me', {
-//       headers: { Authorization: `Bearer ${storedToken}` }
-//     })
-//     .then(res => {
-//       setUser(res.data);
-//       setIsAuthenticated(true);
-//     })
-//     .catch(() => {
-//       setIsAuthenticated(false);
-//       setUser(null);
-//     })
-//     .finally(() => setIsLoading(false));
-//   } else {
-//     setIsAuthenticated(false);
-//   }
-// }, []);
+  //   if (storedToken) {
+  //     setIsLoading(true);
+  //     axios.get('/api/me', {
+  //       headers: { Authorization: `Bearer ${storedToken}` }
+  //     })
+  //     .then(res => {
+  //       setUser(res.data);
+  //       setIsAuthenticated(true);
+  //     })
+  //     .catch(() => {
+  //       setIsAuthenticated(false);
+  //       setUser(null);
+  //     })
+  //     .finally(() => setIsLoading(false));
+  //   } else {
+  //     setIsAuthenticated(false);
+  //   }
+  // }, []);
 
   const login = async (email, password) => {
     dispatch({ type: 'LOGIN_START' });
@@ -225,7 +225,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     } finally {
-      localStorage.removeItem('session_id');
+      localStorage.removeItem('token');
       localStorage.removeItem('user');
       dispatch({ type: 'LOGOUT' });
     }
