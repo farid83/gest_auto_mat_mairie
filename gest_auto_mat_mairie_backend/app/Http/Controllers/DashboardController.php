@@ -39,7 +39,7 @@ class DashboardController extends Controller
                     break;
 
                 case 'secretaire_executif':
-                    $pending_validations = Demande::where('status', 'en_attente_secretaire_executif')
+                    $pending_validations = Demande::where('status', 'en_attente_secretaire')
                         ->count();
                     break;
 
