@@ -1,7 +1,11 @@
 import axios from 'axios';
 import csrfClient from './csrfClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+// Détection de l'environnement
+const isLocal = window.location.hostname === 'localhost';
+const BACKEND_URL = isLocal 
+  ? 'http://localhost:8000' 
+  : process.env.REACT_APP_BACKEND_URL; // Mettre ici l'URL ngrok publique ou de ton serveur
 
 const api = axios.create({
   baseURL: BACKEND_URL,
