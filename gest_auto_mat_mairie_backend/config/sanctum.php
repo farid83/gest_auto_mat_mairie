@@ -21,5 +21,5 @@ return [
         'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
         'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
     ],
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost:3000')),
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost:3000', 'gestautomat.netlify.app','openairish-lacie-nonnervously.ngrok-free.dev')),
 ];
