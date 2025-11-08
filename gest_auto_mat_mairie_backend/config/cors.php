@@ -6,7 +6,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-   'allowed_origins' => ['*'], 
+   'allowed_origins' => [
+    'http://localhost:3000',
+    'https://gestautomat.netlify.app',
+    'https://openairish-lacie-nonnervously.ngrok-free.dev'
+    ],
 
     'allowed_origins_patterns' => [],
 
