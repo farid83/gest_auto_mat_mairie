@@ -1,22 +1,27 @@
 import axios from 'axios';
 import csrfClient from './csrfClient';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 // Détection de l'environnement
 const isLocal = window.location.hostname === 'localhost';
 const BACKEND_URL = isLocal 
   ? 'http://localhost:8000' 
-  : process.env.REACT_APP_BACKEND_URL; // Mettre ici l'URL ngrok publique ou de ton serveur
+  : process.env.REACT_APP_BACKEND_URL;
 
+console.log('🔧 Configuration API:');
+console.log('  - Environnement:', isLocal ? 'Local' : 'Production');
+console.log('  - Backend URL:', BACKEND_URL);
+
+// Créer l'instance axios principale
 const api = axios.create({
   baseURL: BACKEND_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    xsrfCookieName: 'XSRF-TOKEN',
-    xsrfHeaderName: 'X-XSRF-TOKEN',
     'X-Requested-With': 'XMLHttpRequest'
   },
-  withCredentials: true 
+  withCredentials: true, // CRUCIAL pour les cookies
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 let onMaterialsChange = null;
@@ -25,50 +30,135 @@ export const setMaterialsChangeCallback = (callback) => {
   onMaterialsChange = callback;
 };
 
-
-api.interceptors.response.use(
-  (response) => response,
+// Intercepteur pour ajouter le token Bearer
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      console.warn("401 - Token invalide ou expiré");
+    console.error('❌ Erreur dans la requête:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour gérer les réponses et erreurs
+api.interceptors.response.use(
+  (response) => {
+    console.log(`✅ ${response.status} ${response.config.url}`);
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Log de l'erreur
+    if (error.response) {
+      console.error(`❌ Erreur ${error.response.status}:`, error.response.data);
+    } else if (error.request) {
+      console.error('❌ Pas de réponse du serveur:', error.message);
+    } else {
+      console.error('❌ Erreur de configuration:', error.message);
     }
 
-    const res = error.response;
+    // Gestion du 401 (non authentifié)
+    if (error.response?.status === 401) {
+      console.warn("⚠️ 401 - Non authentifié, redirection...");
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('sessionId');
+      // Rediriger vers la page de login si nécessaire
+      // window.location.href = '/login';
+    }
+
+    // Gestion du 419 (CSRF token expiré)
+    if (error.response?.status === 419 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      console.log('🔄 Token CSRF expiré, rafraîchissement...');
+      
+      try {
+        await authService.getCsrfToken();
+        return api(originalRequest);
+      } catch (csrfError) {
+        console.error('❌ Impossible de rafraîchir le CSRF token:', csrfError);
+      }
+    }
+
+    // Formater l'erreur pour l'application
     const apiError = {
-      message: res?.data?.message || error.message || 'Une erreur est survenue',
-      errors: res?.data?.errors || {},
-      status: res?.status || 500,
+      message: error.response?.data?.message || error.message || 'Une erreur est survenue',
+      errors: error.response?.data?.errors || {},
+      status: error.response?.status || 500,
     };
+
     return Promise.reject(apiError);
   }
 );
+
+// Service d'authentification
 export const authService = {
   async getCsrfToken() {
-    return csrfClient.get('/sanctum/csrf-cookie'); 
+    console.log('🔐 Récupération du token CSRF...');
+    try {
+      const response = await csrfClient.get('/sanctum/csrf-cookie');
+      console.log('✅ Token CSRF récupéré');
+      console.log('🍪 Cookies:', document.cookie || 'Aucun cookie');
+      return response;
+    } catch (error) {
+      console.error('❌ Erreur lors de la récupération du CSRF token:', error);
+      throw error;
+    }
   },
 
   async login(email, password) {
-    await this.getCsrfToken();
+    try {
+      // 1. Récupérer le CSRF token
+      await this.getCsrfToken();
 
-    const response = await api.post('/api/login', { email, password }); 
-    const { token, user, sessionId } = response.data;
+      // 2. Tenter la connexion
+      console.log('🔑 Tentative de connexion...');
+      const response = await api.post('/api/login', { email, password });
+      const { token, user, sessionId } = response.data;
 
-    if (token) localStorage.setItem('token', token);
-    if (sessionId) localStorage.setItem('sessionId', sessionId);
-    if (user) localStorage.setItem('user', JSON.stringify(user));
+      // 3. Stocker les données
+      if (token) {
+        localStorage.setItem('token', token);
+        console.log('✅ Token stocké');
+      }
+      if (sessionId) {
+        localStorage.setItem('sessionId', sessionId);
+        console.log('✅ Session ID stocké');
+      }
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+        console.log('✅ Utilisateur stocké');
+      }
 
-    return { token, user };
+      console.log('✅ Connexion réussie');
+      return { token, user };
+    } catch (error) {
+      console.error('❌ Erreur de connexion:', error);
+      throw error;
+    }
   },
 
   async logout() {
     try {
+      console.log('🚪 Déconnexion...');
       await api.post('/api/auth/logout');
+      console.log('✅ Déconnexion côté serveur réussie');
     } catch (err) {
-      console.warn('Erreur lors du logout côté serveur', err);
+      console.warn('⚠️ Erreur lors du logout côté serveur', err);
     }
+    
+    // Nettoyer le localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('sessionId');
+    console.log('✅ Données locales nettoyées');
   },
 
   async getUser() {
@@ -76,16 +166,15 @@ export const authService = {
       const { data } = await api.get('/api/auth/user');
       return data;
     } catch (err) {
-      if (err.response && err.response.status === 401) {
-        return null; 
+      if (err.status === 401) {
+        return null;
       }
       throw err;
     }
   }
 };
 
-
-
+// Service utilisateurs
 export const usersService = {
   async getUsers(params = {}) {
     const response = await api.get('/api/users', { params });
@@ -133,13 +222,15 @@ export const usersService = {
   }
 };
 
+// Service directions
 export const directionsService = {
   async getDirections() {
-    const response = await api.get('/directions');
+    const response = await api.get('/api/directions'); // Ajout de /api
     return response.data;
   }
 };
 
+// Service services
 export const servicesService = {
   async getServices(params = {}) {
     const response = await api.get('/api/services', { params });
@@ -172,35 +263,33 @@ export const servicesService = {
   }
 };
 
+// Service matériels
 export const materialsService = {
   async getMaterials(params = {}) {
     const response = await api.get('/api/materiels', { params });
     return response.data;
   },
 
-
-
   async createMaterial(materialData) {
     const response = await api.post('/api/materiels', materialData);
-
-  if (onMaterialsChange) onMaterialsChange();
+    if (onMaterialsChange) onMaterialsChange();
     return response.data;
-    console.log('Soumission du formulaire', form);
   },
 
   async updateMaterial(id, materialData) {
     const response = await api.put(`/api/materiels/${id}`, materialData);
-
-  if (onMaterialsChange) onMaterialsChange();
+    if (onMaterialsChange) onMaterialsChange();
     return response.data;
   },
 
   async deleteMaterial(id) {
     const response = await api.delete(`/api/materiels/${id}`);
+    if (onMaterialsChange) onMaterialsChange();
     return response.data;
   }
 };
 
+// Service demandes
 export const requestsService = {
   async getRequests(params = {}) {
     const response = await api.get('/api/demandes/', { params });
@@ -223,13 +312,15 @@ export const requestsService = {
   }
 };
 
+// Service validations
 export const validationsService = {
   async getPendingValidations() {
-    const response = await api.get('/validations/pending');
+    const response = await api.get('/api/validations/pending'); // Ajout de /api
     return response.data;
   }
 };
 
+// Service mouvements de stock
 export const mouvementStockService = {
   async getMouvements(params = {}) {
     const response = await api.get('/api/mouvements-stock', { params });
@@ -242,20 +333,25 @@ export const mouvementStockService = {
   }
 };
 
+// Service dashboard
 export const dashboardService = {
   async getStats() {
-    const response = await api.get('/api/dashboard/stats')
+    const response = await api.get('/api/dashboard/stats');
     return response.data;
   }
 };
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
-console.log('Session ID dans le localStorage:', localStorage.getItem('session_id'));
+// Initialisation de l'API
+export const initializeApi = async () => {
+  try {
+    console.log('🚀 Initialisation de l\'API...');
+    await authService.getCsrfToken();
+    console.log('✅ API initialisée avec succès');
+    return true;
+  } catch (error) {
+    console.error('❌ Échec de l\'initialisation de l\'API:', error);
+    return false;
+  }
+};
 
 export default api;

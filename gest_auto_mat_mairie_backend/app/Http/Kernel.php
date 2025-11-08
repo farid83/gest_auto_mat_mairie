@@ -9,11 +9,16 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Auth\Middleware\RequirePassword;
+use App\Http\Middleware\CorsMiddleware;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Fruitcake\Cors\HandleCors;
 class Kernel extends HttpKernel
 {
     protected $middleware = [
+
+         \App\Http\Middleware\CorsMiddleware::class,
+
+
         \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,

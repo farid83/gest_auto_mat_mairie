@@ -6,9 +6,16 @@
   NODE_VERSION = "20"
   YARN_VERSION = "1.22.22"
   CI = "false"
+  # Variable d'environnement pour le build
+  REACT_APP_BACKEND_URL = "https://openairish-lacie-nonnervously.ngrok-free.dev"
 
 [dev]
   command = "yarn start"
   port = 3000
   targetPort = 3000
   framework = "create-react-app"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
