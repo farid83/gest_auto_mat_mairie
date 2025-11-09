@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import api from '../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -22,12 +23,13 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    fetch('http://localhost:8000/api/services')
-      .then(res => res.json())
-      .then(data => setServices(data))
-      .catch(err => console.error('Erreur lors du chargement des services', err));
-  }, []);
+  // Récupérer la liste des services depuis l'API
+useEffect(() => {
+  // Utiliser api au lieu de fetch
+  api.get('/api/services')
+    .then(response => setServices(response.data))
+    .catch(err => console.error('Erreur lors du chargement des services', err));
+}, []);
 
   // Validation du mot de passe
   const validatePassword = (password) => {
@@ -108,59 +110,52 @@ const Register = () => {
     setSuccess('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
-    setSuccess('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setErrors({});
+  setSuccess('');
 
-    // Validation côté client
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setIsSubmitting(false);
-      return;
-    }
+  // Validation côté client
+  const validationErrors = validateForm();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    setIsSubmitting(false);
+    return;
+  }
 
-    try {
-      const response = await fetch('http://localhost:8000/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+  try {
+    // Utiliser api au lieu de fetch
+    const response = await api.post('/api/register', formData);
+    
+    // Si la réponse est OK
+    setSuccess('Inscription réussie ! Redirection vers la page de connexion...');
+    setTimeout(() => navigate('/login'), 2000);
+    
+  } catch (error) {
+    console.error('Erreur lors de l\'inscription:', error);
+    
+    // Gestion des erreurs (error est déjà formaté par l'intercepteur)
+    if (error.errors && Object.keys(error.errors).length > 0) {
+      // Erreurs de validation Laravel
+      const apiErrors = {};
+      Object.keys(error.errors).forEach(key => {
+        apiErrors[key] = Array.isArray(error.errors[key]) 
+          ? error.errors[key].join('. ') 
+          : error.errors[key];
       });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        setSuccess('Inscription réussie ! Redirection vers la page de connexion...');
-        setTimeout(() => navigate('/login'), 2000);
-      } else {
-        // Gestion des erreurs retournées par l'API
-        if (data.errors) {
-          // Erreurs de validation Laravel (format: { email: ["message"], password: ["message"] })
-          const apiErrors = {};
-          Object.keys(data.errors).forEach(key => {
-            apiErrors[key] = Array.isArray(data.errors[key]) 
-              ? data.errors[key].join('. ') 
-              : data.errors[key];
-          });
-          setErrors(apiErrors);
-        } else if (data.message) {
-          // Message d'erreur global
-          setErrors({ general: data.message });
-        } else {
-          setErrors({ general: 'Une erreur est survenue lors de l\'inscription' });
-        }
-      }
-    } catch (err) {
-      console.error('Erreur réseau:', err);
-      setErrors({ 
-        general: 'Erreur de connexion au serveur. Veuillez vérifier votre connexion et réessayer.' 
-      });
-    } finally {
-      setIsSubmitting(false);
+      setErrors(apiErrors);
+    } else if (error.message) {
+      // Message d'erreur global
+      setErrors({ general: error.message });
+    } else {
+      setErrors({ general: 'Une erreur est survenue lors de l\'inscription' });
     }
-  };
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">

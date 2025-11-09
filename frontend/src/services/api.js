@@ -100,30 +100,16 @@ api.interceptors.response.use(
 
 // Service d'authentification
 export const authService = {
-  async getCsrfToken() {
-    console.log('🔐 Récupération du token CSRF...');
-    try {
-      const response = await csrfClient.get('/sanctum/csrf-cookie');
-      console.log('✅ Token CSRF récupéré');
-      console.log('🍪 Cookies:', document.cookie || 'Aucun cookie');
-      return response;
-    } catch (error) {
-      console.error('❌ Erreur lors de la récupération du CSRF token:', error);
-      throw error;
-    }
-  },
-
+  // Supprimer getCsrfToken() pour l'authentification par token
+  
   async login(email, password) {
     try {
-      // 1. Récupérer le CSRF token
-      await this.getCsrfToken();
-
-      // 2. Tenter la connexion
       console.log('🔑 Tentative de connexion...');
+      
+      // PAS besoin de CSRF token pour l'auth par token API
       const response = await api.post('/api/login', { email, password });
       const { token, user, sessionId } = response.data;
 
-      // 3. Stocker les données
       if (token) {
         localStorage.setItem('token', token);
         console.log('✅ Token stocké');
@@ -154,7 +140,6 @@ export const authService = {
       console.warn('⚠️ Erreur lors du logout côté serveur', err);
     }
     
-    // Nettoyer le localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('sessionId');
@@ -173,6 +158,7 @@ export const authService = {
     }
   }
 };
+
 
 // Service utilisateurs
 export const usersService = {
