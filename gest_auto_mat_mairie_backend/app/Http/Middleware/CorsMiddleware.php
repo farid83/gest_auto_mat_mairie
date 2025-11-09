@@ -26,9 +26,16 @@ class CorsMiddleware
     {
         $origin = $request->headers->get('Origin');
 
+        \Log::info('CorsMiddleware exécuté', [
+            'origin' => $origin,
+            'method' => $request->method(),
+            'path' => $request->path(),
+        ]);
+
         if ($this->isOriginAllowed($origin)) {
             
             if ($request->isMethod('OPTIONS')) {
+                \Log::info('Requête OPTIONS détectée');
                 return response('', 200)
                     ->header('Access-Control-Allow-Origin', $origin)
                     ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
@@ -39,6 +46,8 @@ class CorsMiddleware
 
             $response = $next($request);
 
+            \Log::info('Ajout des headers CORS à la réponse');
+
             return $response
                 ->header('Access-Control-Allow-Origin', $origin)
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
@@ -46,6 +55,7 @@ class CorsMiddleware
                 ->header('Access-Control-Allow-Credentials', 'true');
         }
 
+        \Log::warning('Origine non autorisée', ['origin' => $origin]);
         return $next($request);
     }
 

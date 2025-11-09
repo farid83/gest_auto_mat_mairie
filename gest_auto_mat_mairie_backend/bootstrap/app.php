@@ -15,9 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Ajouter votre middleware CORS en premier
         $middleware->prepend(\App\Http\Middleware\CorsMiddleware::class);
 
-        
-
-        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+         // CRITIQUE : RETIRER HandleCors par défaut
+        $middleware->remove(\Illuminate\Http\Middleware\HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
