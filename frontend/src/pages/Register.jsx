@@ -16,7 +16,8 @@ const Register = () => {
     password: '',
     password_confirmation: '',
     service_id: ''
-  });
+  }); 
+  
   const [services, setServices] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
