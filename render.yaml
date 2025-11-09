@@ -58,6 +58,6 @@ services:
 databases:
   # Base de données PostgreSQL gratuite
   - name: gest-mairie-db
-    databaseName: gest_mairie
+    databaseName: gest_mairie_db
     user: gest_mairie_user
     plan: free
