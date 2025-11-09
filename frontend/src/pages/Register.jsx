@@ -17,7 +17,7 @@ const Register = () => {
     password_confirmation: '',
     service_id: ''
   }); 
-  
+
   const [services, setServices] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,10 +26,25 @@ const Register = () => {
 
   // Récupérer la liste des services depuis l'API
 useEffect(() => {
-  // Utiliser api au lieu de fetch
-  api.get('/api/services')
-    .then(response => setServices(response.data))
-    .catch(err => console.error('Erreur lors du chargement des services', err));
+  const loadServices = async () => {
+    try {
+      const response = await api.get('/api/services');
+      console.log('📦 Services reçus:', response.data);
+      
+      // S'assurer que c'est un tableau
+      const servicesArray = Array.isArray(response.data) 
+        ? response.data 
+        : [];
+      
+      setServices(servicesArray);
+      console.log(`✅ ${servicesArray.length} services chargés`);
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des services:', error);
+      setServices([]); // Toujours définir un tableau vide en cas d'erreur
+    }
+  };
+
+  loadServices();
 }, []);
 
   // Validation du mot de passe
