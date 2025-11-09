@@ -19,9 +19,9 @@ const api = axios.create({
     'Accept': 'application/json',
     'X-Requested-With': 'XMLHttpRequest'
   },
-  withCredentials: true, // CRUCIAL pour les cookies
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
+  // withCredentials: true, // CRUCIAL pour les cookies
+  // xsrfCookieName: 'XSRF-TOKEN',
+  // xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 let onMaterialsChange = null;
