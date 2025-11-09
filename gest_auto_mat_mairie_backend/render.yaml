@@ -1,0 +1,63 @@
+services:
+  # Service Web Laravel
+  - type: web
+    name: gest-mairie-backend
+    env: php
+    region: frankfurt  # Choisir un serveur proche (frankfurt pour l'Europe)
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    envVars:
+      - key: APP_NAME
+        value: GestMairie
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        generateValue: true
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_LEVEL
+        value: error
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: gest-mairie-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: gest-mairie-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: gest-mairie-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: gest-mairie-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: gest-mairie-db
+          property: password
+      - key: SESSION_DRIVER
+        value: cookie
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: FRONTEND_URL
+        value: https://gestautomat.netlify.app
+      - key: SANCTUM_STATEFUL_DOMAINS
+        value: gestautomat.netlify.app
+
+databases:
+  # Base de données PostgreSQL gratuite
+  - name: gest-mairie-db
+    databaseName: gest_mairie
+    user: gest_mairie_user
+    plan: free
