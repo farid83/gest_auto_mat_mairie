@@ -7,7 +7,7 @@
   YARN_VERSION = "1.22.22"
   CI = "false"
   # Variable d'environnement pour le build
-  REACT_APP_BACKEND_URL = "https://openairish-lacie-nonnervously.ngrok-free.dev"
+  REACT_APP_BACKEND_URL = "https://gest-auto-mat-mairie-backend.onrender.com"
 
 [dev]
   command = "yarn start"
