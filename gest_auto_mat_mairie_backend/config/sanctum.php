@@ -4,7 +4,7 @@ use Laravel\Sanctum\Sanctum;
 
 return [
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1,gestautomat.netlify.app')),
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1,gestautomat.netlify.app,gest-auto-mat-mairie-backend.onrender.com')),
 
     'guard' => ['web'],
 
