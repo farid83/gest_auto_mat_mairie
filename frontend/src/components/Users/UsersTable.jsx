@@ -378,7 +378,8 @@ const perPage = 15;
 						setEditUser(null);
 					}}
 					onSave={handleSave}
-					editUser={editUser}
+					initialData={editUser}
+					isLoading={createUserMutation.isPending || updateUserMutation.isPending}
 				/>
 			)}
 		</Card>

@@ -54,12 +54,12 @@ const Login = () => {
   };
 
   const quickLoginButtons = [
-    { email: 'jean.dupont@example.com', role: 'Directeur', password: 'password123' },
-    { email: 'marie.koffi@example.com', role: 'CM', password: 'password123' },
-    { email: 'pierre.akoka@example.com', role: 'Secretaire Executif', password: 'password123' },
-    { email: 'fatou.tomiyo@example.com', role: 'DAAF', password: 'password123' },
-    { email: 'ahmed.soumanou@example.com', role: 'Collaborateur DSI', password: 'password123' },
-    { email: 'admin@example.com', role: 'admin', password: 'secret' }
+    { email: 'jean.dupont@example.com', role: 'Directeur', password: 'Password123@' },
+    { email: 'marie.koffi@example.com', role: 'CM', password: 'Password123@' },
+    { email: 'pierre.akoka@example.com', role: 'Secretaire Executif', password: 'Password123@' },
+    { email: 'fatou.tomiyo@example.com', role: 'DAAF', password: 'Password123@' },
+    { email: 'ahmed.soumanou@example.com', role: 'Collaborateur DSI', password: 'Password123@' },
+    { email: 'admin@example.com', role: 'admin', password: 'Password123@' }
   ];
 
   const handleQuickLogin = async (email) => {
