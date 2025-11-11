@@ -63,11 +63,11 @@ const Login = () => {
   ];
 
   const handleQuickLogin = async (email) => {
-    setFormData({ email, password: 'password123' });
+    setFormData({ email, password: 'Password123@' });
     setIsSubmitting(true);
 
     try {
-      const result = await login(email, 'password123');
+      const result = await login(email, 'Password123@');
       if (result.success) {
 
         queryClient.removeQueries({ queryKey: queryKeys.dashboardStats });
