@@ -5,7 +5,7 @@ import { Badge } from '../components/ui/badge';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { Filter } from 'lucide-react';
-
+import { API_URL } from '../config/config';
 
 const RequestsValidation = () => {
   const [requests, setRequests] = useState([]);
@@ -25,19 +25,19 @@ const RequestsValidation = () => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/demande-materiels/validation', {
+      const response = await fetch(`${API_URL}/api/demande-materiels/validation`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       });
       if (!response.ok) throw new Error('Erreur lors de la récupération des demandes');
       const data = await response.json();
 
-const sortedDemandes = [...(data.demandes || [])].sort((a, b) =>
-  sortOrder === 'asc'
-    ? new Date(a.created_at) - new Date(b.created_at)
-    : new Date(b.created_at) - new Date(a.created_at)
-);
+      const sortedDemandes = [...(data.demandes || [])].sort((a, b) =>
+        sortOrder === 'asc'
+          ? new Date(a.created_at) - new Date(b.created_at)
+          : new Date(b.created_at) - new Date(a.created_at)
+      );
 
-setRequests(sortedDemandes);
+      setRequests(sortedDemandes);
 
 
 
@@ -75,21 +75,19 @@ setRequests(sortedDemandes);
     return mat.quantite_validee > 0 ? 'validee' : 'rejetee';
   };
 
-const handleBatchAction = async (demandeId, materielIds, action) => {
+  const handleBatchAction = async (demandeId, materielIds, action) => {
     setLoading(true);
     try {
       if (role === 'secretaire_executif' && action === 'validé') {
         const body = { statut: 'validee_finale' };
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/secretaire-executif-validate`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            },
-            body: JSON.stringify(body),
-          }
+        const response = await fetch(`${API_URL}/demande-materiels/${demandeId}/secretaire-executif-validate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(body),
+        }
         );
 
         if (!response.ok) throw new Error('Erreur lors de la validation par le secrétaire exécutif');
@@ -110,7 +108,7 @@ const handleBatchAction = async (demandeId, materielIds, action) => {
         materielIds.forEach(id => {
           const requested = selected.materials.find(m => m.materiel_id === id)?.quantity ?? 1;
           const qState = quantities[id];
-          
+
           if (action === 'validé') {
             // Pour validation: utiliser la quantité saisie ou la quantité demandée
             const parsed = (qState !== undefined && qState !== null && qState !== '')
@@ -131,7 +129,7 @@ const handleBatchAction = async (demandeId, materielIds, action) => {
       };
 
       const response = await fetch(
-        `http://127.0.0.1:8000/api/demande-materiels/${demandeId}/materiels/batch-validate`,
+        `${API_URL}/demande-materiels/${demandeId}/materiels/batch-validate`,
         {
           method: 'POST',
           headers: {

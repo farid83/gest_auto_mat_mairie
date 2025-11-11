@@ -9,8 +9,9 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { useMaterials, useCreateRequest } from '../hooks/useApi';
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import { API_URL } from '../config/config';
 
-const API_URL = 'http://127.0.0.1:8000/api/demandes';
+// const API_URL = 'http://127.0.0.1:8000/api/demandes';
 
 
 
@@ -144,7 +145,7 @@ console.log('Token :', token);
   
 
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/demandes', {
+    const response = await fetch(`${API_URL}/api/demandes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

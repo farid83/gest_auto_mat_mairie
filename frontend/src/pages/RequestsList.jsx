@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Table } from '../components/ui/table';
 import { Loader2, Eye, Filter } from 'lucide-react';
+import { API_URL } from '../config/config';
 
 
 const statusColors = {
@@ -25,7 +26,7 @@ const RequestsList = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch('http://127.0.0.1:8000/api/demande_materiels', {
+    fetch(`${API_URL}/api/demande_materiels`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -90,7 +91,7 @@ const handleSort = (field) => {
   const handleBatchAction = async (ids, action) => {
     setLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/demande-materiels/batch-validate', {
+      const response = await fetch(`${API_URL}/api/demande-materiels/batch-validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
