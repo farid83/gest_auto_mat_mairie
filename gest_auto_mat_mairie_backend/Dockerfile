@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Installation des dépendances système
+# Installation des dépendances système et PostgreSQL
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -9,9 +9,11 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    nginx
+    nginx \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Installation des extensions PHP
+# Installation des extensions PHP (avec PostgreSQL)
 RUN docker-php-ext-install pdo_mysql pdo_pgsql pgsql mbstring exif pcntl bcmath gd
 
 # Installation de Composer
@@ -24,7 +26,7 @@ WORKDIR /var/www
 COPY . .
 
 # Installation des dépendances PHP
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Permissions
 RUN chown -R www-data:www-data /var/www \
