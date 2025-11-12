@@ -80,7 +80,7 @@ const RequestsValidation = () => {
     try {
       if (role === 'secretaire_executif' && action === 'validé') {
         const body = { statut: 'validee_finale' };
-        const response = await fetch(`${API_URL}/demande-materiels/${demandeId}/secretaire-executif-validate`, {
+        const response = await fetch(`${API_URL}/api/demande-materiels/${demandeId}/secretaire-executif-validate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ const RequestsValidation = () => {
       };
 
       const response = await fetch(
-        `${API_URL}/demande-materiels/${demandeId}/materiels/batch-validate`,
+        `${API_URL}/api/demande-materiels/${demandeId}/materiels/batch-validate`,
         {
           method: 'POST',
           headers: {
