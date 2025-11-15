@@ -1,15 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 import { Button } from '../ui/button';
 
 export const SessionWarning = () => {
-  const { isAuthenticated, logout, showWarning, countdown, hideWarning } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { toast } = useToast();
+  const [showWarning, setShowWarning] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  let countdownInterval;
+
+  // Écouter l'événement de déconnexion automatique
+  useEffect(() => {
+    const handleSessionWarning = () => {
+      setShowWarning(true);
+      setCountdown(60);
+    };
+
+    window.addEventListener('sessionWarning', handleSessionWarning);
+
+    return () => {
+      window.removeEventListener('sessionWarning', handleSessionWarning);
+    };
+  }, []);
 
   useEffect(() => {
-    let countdownInterval;
-
     if (showWarning && isAuthenticated) {
       // Afficher le toast d'avertissement
       const toastId = toast({
@@ -22,8 +37,9 @@ export const SessionWarning = () => {
               variant="outline" 
               size="sm"
               onClick={() => {
-                hideWarning();
-                // L'activité de clic va automatiquement réinitialiser le timer dans AuthContext
+                setShowWarning(false);
+                // Déclencher une activité pour réinitialiser le timer
+                window.dispatchEvent(new Event('mousemove'));
               }}
             >
               Rester connecté
@@ -31,8 +47,9 @@ export const SessionWarning = () => {
             <Button 
               variant="destructive" 
               size="sm"
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                setShowWarning(false);
+                await logout();
               }}
             >
               Se déconnecter
@@ -43,11 +60,16 @@ export const SessionWarning = () => {
 
       // Compte à rebours
       countdownInterval = setInterval(() => {
-        // Le countdown est géré dans le hook, on met juste à jour l'affichage
-        if (countdown <= 0) {
-          clearInterval(countdownInterval);
-          logout();
-        }
+        setCountdown(prev => {
+          const newCountdown = prev - 1;
+          if (newCountdown <= 0) {
+            clearInterval(countdownInterval);
+            logout();
+            setShowWarning(false);
+            return 0;
+          }
+          return newCountdown;
+        });
       }, 1000);
 
       return () => {
@@ -56,7 +78,7 @@ export const SessionWarning = () => {
         }
       };
     }
-  }, [showWarning, countdown, isAuthenticated, logout, hideWarning, toast]);
+  }, [showWarning, countdown, isAuthenticated, logout, toast]);
 
   return null; // Ce composant ne rend rien directement
 };
